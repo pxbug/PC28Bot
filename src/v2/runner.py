@@ -51,7 +51,6 @@ class V2Runner:
         self.runtime = None
         self.listener = None
         self.send_conn = None
-        self.lottery_worker = None
         self._stop = False
         self._start_ts = time.time()
         self._member_refresh_lock = threading.Lock()
@@ -122,6 +121,8 @@ class V2Runner:
         self.runtime = Runtime(self.config, self.store, self.api, send_func=self._ws_send, logger=self.logger)
         self.runtime.start()
 
+        self._init_lottery_pusher()
+
         group_count = self._refresh_group_meta()
 
         self.listener = MessageListener(self.client.user_id, self.client.im_token, platform=5)
@@ -138,15 +139,6 @@ class V2Runner:
         self.runtime.heartbeat_ws_ok = lambda: (
             self.listener is not None and getattr(self.listener, "_ws", None) is not None)
         self.logger("[runner] 启动完成，群数=%s" % (group_count or 0))
-
-        # PC28 开奖抓取 Worker（后台线程，独立于 WS 生命周期）
-        try:
-            from pc28.worker import start_lottery_worker
-            _t, self.lottery_worker = start_lottery_worker(
-                self, send_func=self._ws_send, logger=self.logger,
-            )
-        except Exception as e:
-            self.logger("[runner] PC28 worker 启动失败: %s" % e)
 
     def _start_heartbeat(self):
         """每 30 秒写心跳文件（含 WS 连接状态），供看门狗检测卡死/断线。"""
@@ -185,9 +177,48 @@ class V2Runner:
                 self.logger("[ws] 收到 gid=%s sendID=%s ctype=%s content=%r" % (
                     md.get("groupID"), md.get("sendID"), md.get("contentType"),
                     (md.get("content") or "")[:40]))
-                self.runtime.on_message(md)
+                self._handle_message(md)
         except Exception as e:
             self.logger("[ws] 解码失败: %s" % e)
+
+    def _handle_message(self, md):
+        """消息处理：先去重 → 解析指令 → 执行。"""
+        self.runtime.on_message(md)
+        gid = md.get("groupID") or ""
+        text = md.get("content") or ""
+        sender_id = str(md.get("sendID") or "")
+        if not gid or not text:
+            return
+        # 指令入口
+        try:
+            from .commands import execute
+            result = execute(
+                self.config, self.store, gid, sender_id, text,
+                at_user_id=md.get("atUserID"),
+                member_name=md.get("nickname") or md.get("senderNickname"),
+                daily_count=None,
+                resolve=lambda g, uid: self.runtime._group_meta.get(g, {}).get(
+                    "members", {}).get(str(uid), {}).get("nickname") or str(uid),
+            )
+        except Exception as e:
+            self.logger("[cmd] 指令异常: %s" % e)
+            return
+        reply = (result or {}).get("reply") if isinstance(result, dict) else None
+        action = (result or {}).get("action") if isinstance(result, dict) else None
+        need_refresh = bool((result or {}).get("refresh_lottery"))
+        if reply:
+            self._ws_send(gid, reply)
+        if action and isinstance(action, dict):
+            self._run_action(gid, action)
+        if need_refresh:
+            self.refresh_lottery_targets()
+
+    def _run_action(self, gid, action):
+        """执行指令副作用（如踢人/禁言）。预留扩展。"""
+        atype = action.get("type", "")
+        # 骨架版：仅记录日志，不实际调用风控接口
+        self.logger("[action] gid=%s type=%s payload=%s" % (gid, atype,
+                    {k: v for k, v in action.items() if k != "type"}))
 
     def _start_health_monitor(self):
         """每小时上报运行健康状态。"""
@@ -219,14 +250,51 @@ class V2Runner:
         elif self.client is not None:
             self.client.send_msg(gid, text)
 
+    # ---------- 开奖推送 ----------
+    def _init_lottery_pusher(self):
+        """根据 config.lottery 构造 LotteryPusher，注入 runtime 并启动。"""
+        lc = self.config.get("lottery") or {}
+        if not lc.get("enabled", False):
+            self.logger("[lottery] 未启用（config.lottery.enabled=false）")
+            return
+        api_key = lc.get("api_key") or ""
+        if not api_key:
+            self.logger("[lottery] 未配置 api_key，跳过推送器初始化")
+            return
+        try:
+            from .lottery import LotteryClient, LotteryPusher, PushCounter
+            client = LotteryClient(
+                base_url=lc.get("base_url") or "https://yu28.top",
+                api_key=api_key,
+                game=lc.get("game") or "jnd28",
+                timeout=int(lc.get("timeout") or 10),
+                logger=self.logger,
+            )
+            counter = PushCounter(lc.get("push_counter_path") or "logs/runtime/push_count.json")
+            pusher = LotteryPusher(
+                client=client,
+                counter=counter,
+                target_gids=self.store.lottery_subscribers(),
+                send_func=self._ws_send,
+                logger=self.logger,
+                source_tag="PC28 开奖",
+            )
+            self.runtime.lottery_pusher = pusher
+            pusher.start()
+            self.logger("[lottery] 推送器已启动：base=%s game=%s 订阅群数=%d"
+                        % (lc.get("base_url"), lc.get("game") or "jnd28",
+                           len(self.store.lottery_subscribers())))
+        except Exception as e:
+            self.logger("[lottery] 推送器启动失败: %s" % e)
+
+    def refresh_lottery_targets(self):
+        """供 commands.py 在用户切换订阅时调用。"""
+        if self.runtime is not None:
+            return self.runtime.refresh_lottery_targets()
+        return []
+
     def stop(self):
         self._stop = True
-        # PC28 worker 先停（不再发起新推送）
-        try:
-            if self.lottery_worker is not None:
-                self.lottery_worker.stop()
-        except Exception:
-            pass
         if self.runtime is not None:
             self.runtime.stop()
         if self.listener is not None:

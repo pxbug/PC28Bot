@@ -103,20 +103,14 @@ class DashboardBridge:
         store = runner.store
         super_admins = [str(x) for x in config.get("permissions", {}).get("superAdminIds", [])]
         groups = []
-        pc28_push_count = 0
         for gid in store.group_ids():
             meta = runner.runtime._group_meta.get(gid, {})
             gname = meta.get("name", gid)
-            snap = store.snapshot().get(gid, {})
-            push_on = bool(snap.get("pc28_push_enabled", False))
-            if push_on:
-                pc28_push_count += 1
             groups.append({
                 "gid": gid,
                 "gname": gname,
                 "enabled": bool(store.is_group_active(gid)),
                 "remaining": "运行中" if store.is_group_active(gid) else "已停用",
-                "pc28_push_enabled": push_on,
             })
         if runner.client is not None:
             try:
@@ -125,16 +119,11 @@ class DashboardBridge:
                 for g in gl:
                     gid = g.get("groupID", "")
                     if gid and gid not in known:
-                        snap = store.snapshot().get(gid, {})
-                        push_on = bool(snap.get("pc28_push_enabled", False))
-                        if push_on:
-                            pc28_push_count += 1
                         groups.append({
                             "gid": gid,
                             "gname": g.get("groupName", "") or gid,
                             "enabled": bool(store.is_group_active(gid)),
                             "remaining": "运行中" if store.is_group_active(gid) else "已停用",
-                            "pc28_push_enabled": push_on,
                         })
             except Exception:
                 pass
@@ -143,7 +132,6 @@ class DashboardBridge:
             "user_id": (runner.client.user_id if runner.client else ""),
             "super_admins": super_admins,
             "groups": groups,
-            "pc28_push_count": pc28_push_count,
             "time": int(time.time() * 1000),
         }
 

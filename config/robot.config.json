@@ -15,25 +15,18 @@
     "path": "logs/runtime/state.json",
     "save_interval_ms": 30000
   },
+  "lottery": {
+    "enabled": true,
+    "api_key": "yu28_c4aaa4ccc91a5bf8",
+    "base_url": "https://yu28.top",
+    "game": "jnd28",
+    "timeout": 10,
+    "push_counter_path": "logs/runtime/push_count.json",
+    "push_default_on": false
+  },
   "logging": {
     "dir": "logs/runtime",
     "max_bytes": 20971520,
     "max_files": 10
-  },
-  "pc28": {
-    "enabled": true,
-    "api_base": "https://yu28.top",
-    "api_key": "yu28_c4aaa4ccc91a5bf8",
-    "history_size": 20,
-    "countdown_extra_sec": 1,
-    "post_result_delay_sec": 3,
-    "mysql": {
-      "host": "127.0.0.1",
-      "port": 3306,
-      "user": "pc28bot",
-      "password": "pc28bot",
-      "db": "pc28",
-      "charset": "utf8mb4"
-    }
   }
 }

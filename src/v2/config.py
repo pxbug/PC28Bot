@@ -18,22 +18,6 @@ DEFAULT_CONFIG = {
     "permissions": {"superAdminIds": [], "groupAdmins": {}},
     "state": {"path": "logs/runtime/state.json", "save_interval_ms": 30000},
     "logging": {"dir": "logs/runtime", "max_bytes": 20971520, "max_files": 10},
-    "pc28": {
-        "enabled": True,
-        "api_base": "https://yu28.top",
-        "api_key": "yu28_c4aaa4ccc91a5bf8",
-        "history_size": 20,
-        "countdown_extra_sec": 1,
-        "post_result_delay_sec": 3,
-        "mysql": {
-            "host": "127.0.0.1",
-            "port": 3306,
-            "user": "root",
-            "password": "",
-            "db": "pc28",
-            "charset": "utf8mb4",
-        },
-    },
 }
 
 

@@ -340,7 +340,6 @@ class BotGUI:
                 self._show("config")
                 return
             self.dash_meta.config(text="登录账号：%s ｜ 超管：%s" % (d.get("user_id", ""), ",".join(supers)))
-            pc28_count = d.get("pc28_push_count", 0)
             for w in self.dash_list.winfo_children():
                 w.destroy()
             groups = d.get("groups") or []
@@ -351,12 +350,10 @@ class BotGUI:
                 for g in groups:
                     dot = "🟢" if g.get("enabled") else "🔴"
                     rem = "运行中" if g.get("enabled") else "已停用"
-                    pc28_flag = "  [开奖推送]" if g.get("pc28_push_enabled") else ""
-                    line = "%s  %s  （%s）  %s%s" % (
-                        dot, g.get("gname", ""), g.get("gid", ""), rem, pc28_flag)
+                    line = "%s  %s  （%s）  %s" % (dot, g.get("gname", ""), g.get("gid", ""), rem)
                     tk.Label(self.dash_list, text=line, anchor="w", bg="#ffffff",
                              font=("Microsoft YaHei", 11), padx=12, pady=8).pack(fill="x", pady=3)
-            self.dash_status.config(text="开奖推送群数：%d" % pc28_count)
+            self.dash_status.config(text="")
         except Exception as e:
             if not silent:
                 self.dash_status.config(text="刷新失败：%s" % e)

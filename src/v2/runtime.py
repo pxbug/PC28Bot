@@ -38,7 +38,7 @@ class BoundedLRU:
 
 
 class Runtime:
-    """骨架运行时：负责事件循环、消息去重、按群元信息缓存。"""
+    """骨架运行时：负责事件循环、消息去重、按群元信息缓存、开奖主循环。"""
 
     def __init__(self, config, store, async_api=None, send_func=None, logger=None):
         self.config = config
@@ -54,6 +54,8 @@ class Runtime:
         self.heartbeat_ws_ok = None
         # 群元信息缓存：仅记录 name / owner
         self._group_meta = {}
+        # 开奖推送器（由 runner 注入；未注入则为 None）
+        self.lottery_pusher = None
 
     # ---------- 生命周期 ----------
     def start(self):
@@ -64,6 +66,11 @@ class Runtime:
 
     def stop(self):
         self._stop = True
+        if self.lottery_pusher is not None:
+            try:
+                self.lottery_pusher.stop()
+            except Exception:
+                pass
         if self.loop is not None:
             try:
                 self.loop.call_soon_threadsafe(self.loop.stop)
@@ -109,13 +116,7 @@ class Runtime:
 
     # ---------- 消息入口 ----------
     def on_message(self, msg):
-        """消息入口（监听线程调用，线程安全）。
-
-        骨架版基础行为：
-        - 按 serverMsgID/clientMsgID 去重
-        - 内容日志
-        - 调用 v2.commands.execute 命中 GM / 启动 / 关闭 时回包
-        """
+        """消息入口（监听线程调用，线程安全）。骨架版只记录日志，不做业务处理。"""
         if not isinstance(msg, dict):
             return
         gid = msg.get("groupID") or msg.get("gid") or ""
@@ -126,29 +127,7 @@ class Runtime:
                 return
             self.seen.add(server_id)
         content_type = msg.get("contentType") or 0
-        text = msg.get("content") or ""
-        if not isinstance(text, str):
-            try:
-                text = str(text)
-            except Exception:
-                text = ""
         self.logger("[ws] 收到 gid=%s sendID=%s ctype=%s" % (gid, send_id, content_type))
-        # 指令解析（GM / 启动 / 关闭），仅超管响应
-        if gid and send_id and text:
-            try:
-                from . import commands
-                r = commands.execute(
-                    self.config, self.store, gid, send_id, text,
-                    at_user_id=None, member_name=None,
-                )
-                reply = (r or {}).get("reply")
-                if reply:
-                    try:
-                        self.send_func(gid, reply)
-                    except Exception as e:
-                        self.logger("[ws] 发送回复失败: %s" % e)
-            except Exception as e:
-                self.logger("[ws] 指令处理异常: %s" % e)
 
     # ---------- 群元信息 ----------
     def set_group_meta(self, gid, name, owner, members=None):
@@ -168,3 +147,13 @@ class Runtime:
     def on_group_member_join(self, gid, new_members):
         """占位：保留方法签名以兼容旧 runner 调用。"""
         pass
+
+    # ---------- 开奖推送辅助 ----------
+    def refresh_lottery_targets(self):
+        """从 store 读取订阅群，重新设置 lottery_pusher 目标。"""
+        if self.lottery_pusher is None:
+            return []
+        gids = self.store.lottery_subscribers() if self.store is not None else []
+        self.lottery_pusher.set_targets(gids)
+        self.logger("[runtime] 开奖推送目标已刷新：%d 个群" % len(gids))
+        return gids
