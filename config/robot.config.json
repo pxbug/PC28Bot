@@ -30,8 +30,8 @@
     "mysql": {
       "host": "127.0.0.1",
       "port": 3306,
-      "user": "root",
-      "password": "",
+      "user": "pc28bot",
+      "password": "pc28bot",
       "db": "pc28",
       "charset": "utf8mb4"
     }
