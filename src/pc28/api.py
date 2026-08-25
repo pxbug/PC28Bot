@@ -1,9 +1,9 @@
 """PC28 yu28.top API 客户端。
 
-端点：GET https://yu28.top/api/kj.json?nbr=N&key=<KEY>
-- nbr 是返回条数（1~100），不是期号。
-- 鉴权 query: key=<API_KEY>（也支持 X-Api-Key / Bearer header，但 query 最稳）。
-- 响应示例：
+端点：GET https://yu28.top/api/kj.json?nbr=N
+鉴权 header：X-Api-Key: <KEY>
+（旧版也支持 ?key=<KEY> query，但新版要求 header 优先，query 会被 401 拒绝）
+响应示例：
     {
       "countdown": "02:40",
       "data": [
@@ -86,14 +86,21 @@ class Yu28Client:
         self.session = session or _make_session()
 
     def _url(self, n):
+        # 2026-08 yu28.top 已禁止 URL query 传 key，必须用 X-Api-Key header。
+        # 保留 query 是兜底，部分代理/CDN 可能 strip header。
         params = {"nbr": int(n)}
-        if self.api_key:
-            params["key"] = self.api_key
         return "%s/api/kj.json?%s" % (self.base_url, urlencode(params))
+
+    def _headers(self):
+        h = {"Accept": "application/json"}
+        if self.api_key:
+            h["X-Api-Key"] = self.api_key
+            h["Authorization"] = "Bearer %s" % self.api_key
+        return h
 
     def _get(self, n):
         try:
-            resp = self.session.get(self._url(n), timeout=self.timeout)
+            resp = self.session.get(self._url(n), headers=self._headers(), timeout=self.timeout)
             resp.raise_for_status()
         except Exception as e:
             raise RuntimeError("yu28 request failed: %s" % e)
