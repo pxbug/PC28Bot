@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>辣椒聊 Bot</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <!-- 自定义标题栏 -->
+  <div class="titlebar pywebview-drag-region">
+    <div class="tb-left">
+      <svg class="tb-logo" viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2v1h4a2 2 0 0 1 2 2v3a2 2 0 0 1 2 2 2 2 0 0 1-2 2v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 1-2-2 2 2 0 0 1 2-2V7a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm-5 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7 15h10v2H7v-2z"/></svg>
+      <span class="tb-title">辣椒聊 Bot</span>
+    </div>
+    <div class="tb-right">
+      <button class="tb-btn" id="minBtn" title="最小化"><svg viewBox="0 0 24 24"><path d="M5 11h14v2H5z"/></svg></button>
+      <button class="tb-btn" id="maxBtn" title="最大化"><svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z"/></svg></button>
+      <button class="tb-btn tb-close" id="closeBtn" title="关闭"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- 左侧导航 -->
+    <nav class="sidebar">
+      <div class="logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2v1h4a2 2 0 0 1 2 2v3a2 2 0 0 1 2 2 2 2 0 0 1-2 2v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 1-2-2 2 2 0 0 1 2-2V7a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm-5 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7 15h10v2H7v-2z"/></svg>
+      </div>
+      <div class="nav-items">
+        <button class="nav-item active" data-page="dashboard" title="首页">
+          <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm0 7h6v-5H4zm8 0h8v-9h-8zm0-11h8V4h-8z"/></svg>
+        </button>
+        <button class="nav-item" data-page="settings" title="设置">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.5 7.5 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.3 7.3 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.85a.5.5 0 0 0-.5.42l-.36 2.54a7.3 7.3 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.75 8.84a.5.5 0 0 0 .12.64l2.03 1.58a7.5 7.5 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32a.5.5 0 0 0 .61.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54a.5.5 0 0 0 .5.42h3.85a.5.5 0 0 0 .5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96a.5.5 0 0 0 .61-.22l1.92-3.32a.5.5 0 0 0-.12-.64zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg>
+        </button>
+      </div>
+      <div class="nav-bottom" id="navStatus" title="未连接">●</div>
+    </nav>
+
+    <!-- ========== 仪表盘（骨架版） ========== -->
+    <div class="page" id="page-dashboard">
+      <div class="page-inner">
+        <div class="page-head">
+          <h1>仪表盘</h1>
+          <p class="page-sub" id="dashWelcome">欢迎使用辣椒聊机器人群管客户端（骨架版）</p>
+        </div>
+        <div class="dash-card">
+          <h3>当前状态</h3>
+          <p>业务功能已全部移除，仅保留登录 / 看板 / 设置。</p>
+          <p>请在群内使用命令行测试机器人收发消息，详见 <code>删除功能.md</code>。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 设置页 ========== -->
+    <div class="page hidden" id="page-settings">
+      <div class="page-inner">
+        <div class="page-head">
+          <h1>设置</h1>
+          <p class="page-sub">客户端配置</p>
+        </div>
+        <div class="dash-card settings-card">
+          <div class="cfg-row">
+            <div><h3>当前账号</h3><p id="setAccount">未登录</p></div>
+            <button class="btn danger" id="logoutBtn">退出登录</button>
+          </div>
+        </div>
+        <div class="dash-card settings-card">
+          <div class="cfg-row">
+            <div><h3>关于</h3><p>辣椒聊 Bot 群管客户端 · v2.0</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="smsModal" class="modal hidden">
+  <div class="modal-box">
+    <h3>设备切换确认</h3>
+    <p id="smsHint">短信验证码已发送到手机</p>
+    <input id="smsInput" placeholder="请输入6位验证码" autocomplete="off">
+    <div class="modal-btns">
+      <button class="btn primary" id="smsOk">确认</button>
+      <button class="btn" id="smsCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<div id="loginModal" class="modal">
+  <div class="login-card modal-login">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 0 1 2 2v1h4a2 2 0 0 1 2 2v3a2 2 0 0 1 2 2 2 2 0 0 1-2 2v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 1-2-2 2 2 0 0 1 2-2V7a2 2 0 0 1 2-2h4V4a2 2 0 0 1 2-2zm-5 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm10 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7 15h10v2H7v-2z"/></svg>
+    </div>
+    <h1 class="login-title">辣椒聊 Bot</h1>
+    <p class="login-sub">机器人群管客户端 · 请先登录</p>
+    <div class="field">
+      <label>手机号</label>
+      <input id="phoneInput" placeholder="请输入手机号" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>密码</label>
+      <input id="pwdInput" type="password" placeholder="请输入密码">
+    </div>
+    <p class="area">区号: +86</p>
+    <button id="loginBtn" class="btn-primary btn-block">登 录</button>
+    <div id="loginStatus" class="login-status"></div>
+    <pre id="loginLog" class="login-log"></pre>
+  </div>
+</div>
+
+<!-- 独立验证码模态框（大尺寸，滑块完整显示） -->
+<div id="captchaModal" class="modal hidden">
+  <div class="captcha-modal-box">
+    <div class="captcha-modal-head">
+      <div>
+        <h3 id="captchaModalTitle">安全验证</h3>
+        <p id="captchaHint">请完成下方滑块验证</p>
+      </div>
+      <button class="btn sm" id="captchaDoneBtn">已完成验证，继续</button>
+    </div>
+    <iframe id="captchaFrame" class="captcha-frame hidden" sandbox="allow-scripts allow-same-origin"></iframe>
+    <div id="captchaHost" class="captcha-host"></div>
+    <div class="captcha-modal-foot">
+      <span id="captchaStatus" class="captcha-status"></span>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

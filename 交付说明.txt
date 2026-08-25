@@ -1,0 +1,50 @@
+═══════════════════════════════════════
+  辣椒群管机器人 - 源码交付说明
+═══════════════════════════════════════
+
+【这是什么】
+· 本包为 Python 源码工程（V2 架构），非打包 exe
+· 可直接运行源码，也可用 build.spec 自行打包成 exe
+
+【运行环境要求】
+· Windows 10/11
+· Python 3.10+（本工程在 3.12 下开发验证）
+· 安装依赖：
+    pip install -r requirements.txt
+
+【启动方式】
+方式一（直接运行源码）：
+    python src\main.py
+  或双击 start_watchdog.bat
+
+方式二（打包成 exe）：
+    pip install pyinstaller
+    pyinstaller build.spec          # 生成 LajiaoBot.exe
+    pyinstaller watchdog.spec       # 生成 Watchdog.exe
+
+【首次使用】
+1. 启动后弹出登录窗口，输入机器人账号手机号 + 密码登录
+2. 配置超级管理员：
+   · 界面：看板 → 配置页 → 填超管 userID → 保存
+   · 或编辑 config\robot.config.json 的 "superAdminIds" 后重启
+3. 机器人账号加入目标群后，超管在群里发「菜单」查看指令
+
+【本版本已包含的修复】
+· WS 长连接心跳保活（长时间运行不掉线、指令及时响应）
+· 启动即写心跳文件（避免看门狗误报）
+· 广告/刷屏/黑名单消息撤回（messageID 字段修复）
+· 名片净化（大群秒级、并发改名、进度提示）
+· 清理死人（封禁/注销账号识别）
+· 管理指令昵称回显
+
+【安全说明】
+· 本包已清除所有登录 token 与超管配置，交付干净
+· lajiao_bot.ini 仅含 device 标识，登录信息由客户自行填写
+
+【目录结构】
+config/robot.config.json   单一配置源（超管/监测/安全）
+src/                       源码（main 入口 + 模块化业务）
+src/v2/                    V2 运行时（runtime/runner/gui 等）
+tests/                     自动化测试
+docs/                      架构与变更文档
+build.spec / watchdog.spec PyInstaller 打包配置

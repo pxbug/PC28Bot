@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "robot": {
+    "name": "lajiao-group-bot",
+    "super_admin": "8018077",
+    "self_account_id": "",
+    "ignore_self_message": true,
+    "ignore_system_message": true
+  },
+  "permissions": {
+    "superAdminIds": ["8018077"],
+    "groupAdmins": {}
+  },
+  "state": {
+    "path": "logs/runtime/state.json",
+    "save_interval_ms": 30000
+  },
+  "logging": {
+    "dir": "logs/runtime",
+    "max_bytes": 20971520,
+    "max_files": 10
+  }
+}

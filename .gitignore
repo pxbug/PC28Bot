@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+
+# Local config & secrets (NEVER commit credentials)
+lajiao_bot.ini
+config/robot.config.local.json
+*.log
+
+# Runtime artifacts
+logs/
+runtime_state.json
+auto_joined_groups.json
+
+# Project-specific exclusions
+LajiaoBot.zip
+src/logs/
+src/__pycache__/
+src/v2/__pycache__/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
