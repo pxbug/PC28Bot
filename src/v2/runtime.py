@@ -109,7 +109,13 @@ class Runtime:
 
     # ---------- 消息入口 ----------
     def on_message(self, msg):
-        """消息入口（监听线程调用，线程安全）。骨架版只记录日志，不做业务处理。"""
+        """消息入口（监听线程调用，线程安全）。
+
+        骨架版基础行为：
+        - 按 serverMsgID/clientMsgID 去重
+        - 内容日志
+        - 调用 v2.commands.execute 命中 GM / 启动 / 关闭 时回包
+        """
         if not isinstance(msg, dict):
             return
         gid = msg.get("groupID") or msg.get("gid") or ""
@@ -120,7 +126,29 @@ class Runtime:
                 return
             self.seen.add(server_id)
         content_type = msg.get("contentType") or 0
+        text = msg.get("content") or ""
+        if not isinstance(text, str):
+            try:
+                text = str(text)
+            except Exception:
+                text = ""
         self.logger("[ws] 收到 gid=%s sendID=%s ctype=%s" % (gid, send_id, content_type))
+        # 指令解析（GM / 启动 / 关闭），仅超管响应
+        if gid and send_id and text:
+            try:
+                from . import commands
+                r = commands.execute(
+                    self.config, self.store, gid, send_id, text,
+                    at_user_id=None, member_name=None,
+                )
+                reply = (r or {}).get("reply")
+                if reply:
+                    try:
+                        self.send_func(gid, reply)
+                    except Exception as e:
+                        self.logger("[ws] 发送回复失败: %s" % e)
+            except Exception as e:
+                self.logger("[ws] 指令处理异常: %s" % e)
 
     # ---------- 群元信息 ----------
     def set_group_meta(self, gid, name, owner, members=None):

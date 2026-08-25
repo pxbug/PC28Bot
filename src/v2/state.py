@@ -16,9 +16,10 @@ def _now_ms():
 
 
 def _default_group():
-    """最小默认结构：仅 enabled 标记，业务字段按需添加。"""
+    """最小默认结构：enabled 标记 + PC28 推送开关。"""
     return {
         "enabled": True,
+        "pc28_push_enabled": False,
     }
 
 
@@ -46,6 +47,7 @@ class GroupStateStore:
                     if not isinstance(g, dict):
                         continue
                     base = _default_group()
+                    # 仅拷贝已知字段，未知字段忽略（向前兼容）
                     base.update({k: v for k, v in g.items() if k in base})
                     self._groups[gid] = base
         except Exception:
@@ -89,12 +91,13 @@ class GroupStateStore:
             return list(self._groups.keys())
 
     def snapshot(self):
-        """看板用：每群状态快照（已精简）。"""
+        """看板用：每群状态快照（含 PC28 推送开关）。"""
         with self._lock:
             out = {}
             for gid, g in self._groups.items():
                 out[gid] = {
                     "enabled": bool(g.get("enabled", True)),
+                    "pc28_push_enabled": bool(g.get("pc28_push_enabled", False)),
                 }
             return out
 
@@ -110,3 +113,22 @@ class GroupStateStore:
         g = self._group(gid)
         with self._lock:
             return bool(g.get("enabled", True))
+
+    # ---------- PC28 推送开关 ----------
+    def set_pc28_push_enabled(self, gid, enabled):
+        """设置某群的 PC28 开奖推送开关。"""
+        g = self._group(gid)
+        with self._lock:
+            g["pc28_push_enabled"] = bool(enabled)
+            self._touch()
+
+    def is_pc28_push_enabled(self, gid):
+        g = self._group(gid)
+        with self._lock:
+            return bool(g.get("pc28_push_enabled", False))
+
+    def pc28_push_enabled_group_ids(self):
+        """列出所有开启了 PC28 推送的群 ID。"""
+        with self._lock:
+            return [gid for gid, g in self._groups.items()
+                    if bool(g.get("pc28_push_enabled", False))]

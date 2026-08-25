@@ -51,6 +51,7 @@ class V2Runner:
         self.runtime = None
         self.listener = None
         self.send_conn = None
+        self.lottery_worker = None
         self._stop = False
         self._start_ts = time.time()
         self._member_refresh_lock = threading.Lock()
@@ -138,6 +139,15 @@ class V2Runner:
             self.listener is not None and getattr(self.listener, "_ws", None) is not None)
         self.logger("[runner] 启动完成，群数=%s" % (group_count or 0))
 
+        # PC28 开奖抓取 Worker（后台线程，独立于 WS 生命周期）
+        try:
+            from pc28.worker import start_lottery_worker
+            _t, self.lottery_worker = start_lottery_worker(
+                self, send_func=self._ws_send, logger=self.logger,
+            )
+        except Exception as e:
+            self.logger("[runner] PC28 worker 启动失败: %s" % e)
+
     def _start_heartbeat(self):
         """每 30 秒写心跳文件（含 WS 连接状态），供看门狗检测卡死/断线。"""
         def run():
@@ -211,6 +221,12 @@ class V2Runner:
 
     def stop(self):
         self._stop = True
+        # PC28 worker 先停（不再发起新推送）
+        try:
+            if self.lottery_worker is not None:
+                self.lottery_worker.stop()
+        except Exception:
+            pass
         if self.runtime is not None:
             self.runtime.stop()
         if self.listener is not None:
