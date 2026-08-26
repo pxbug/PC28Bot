@@ -1,72 +1,76 @@
 <?php
 /**
- * 登录页
+ * Login page
  */
-require __DIR__ . '/../src/bootstrap.php';
+require_once __DIR__ . '/src/db.php';
+require_once __DIR__ . '/src/auth.php';
 
-use App\Auth;
-use App\Helper;
-
-if (Auth::check()) {
-    Helper::flash('toast', '已登录');
-    Response::redirect('/index.php');
-}
+DB::init(__DIR__ . '/data/admin.db');
+Auth::start();
+Auth::seedAdmin('admin', 'admin123', 'SuperAdmin', 'super');
 
 $error = '';
+$success = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
-    if ($username === '' || $password === '') {
+
+    if (empty($username) || empty($password)) {
         $error = '请输入用户名和密码';
-    } elseif (Auth::login($username, $password)) {
-        Helper::flash('toast', '登录成功');
-        Response::redirect('/index.php');
-    } else {
+    } elseif (!Auth::login($username, $password)) {
         $error = '用户名或密码错误';
+    } else {
+        header('Location: /');
+        exit;
     }
 }
 
-$toast = Helper::flash('toast');
+if (Auth::check()) {
+    header('Location: /');
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录 — PC28 管理后台</title>
-<link rel="stylesheet" href="/assets/css/apple.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 — PC28 Admin</title>
+    <link rel="stylesheet" href="/css/app.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎰</text></svg>">
 </head>
 <body>
-<div class="login-wrap">
-    <div class="login-card fade-in">
-        <div class="login-logo">P</div>
-        <h1 class="login-title">PC28 管理后台</h1>
-        <p class="login-sub">请登录以继续</p>
+<div class="login-page">
+    <div class="login-card">
+        <div class="login-logo">
+            <div class="login-logo-icon">P</div>
+            <div class="login-title">PC28 Admin</div>
+            <div class="login-sub">管理系统</div>
+        </div>
 
         <?php if ($error): ?>
-        <div style="background:rgba(255,59,48,.1);color:var(--red);padding:10px 14px;border-radius:var(--radius-md);font-size:13px;margin-bottom:16px">
-            <?= Helper::h($error) ?>
-        </div>
+            <div class="login-error show"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <form class="login-form" method="POST" autocomplete="off">
-            <div class="input-group">
-                <label class="input-label">用户名</label>
-                <input type="text" name="username" class="input" placeholder="请输入用户名" required autofocus value="<?= Helper::h($_POST['username'] ?? '') ?>">
+            <div class="form-group">
+                <label class="form-label">用户名</label>
+                <input type="text" name="username" class="form-input" placeholder="输入用户名" autofocus required>
             </div>
-            <div class="input-group">
-                <label class="input-label">密码</label>
-                <input type="password" name="password" class="input" placeholder="请输入密码" required>
+            <div class="form-group">
+                <label class="form-label">密码</label>
+                <input type="password" name="password" class="form-input" placeholder="输入密码" required>
             </div>
-            <button type="submit" class="btn btn-primary btn-lg w-full" style="margin-top:4px">
+            <button type="submit" class="btn btn-primary w-full" style="margin-top:8px;justify-content:center;">
                 登 录
             </button>
         </form>
+
+        <div style="text-align:center;margin-top:20px;font-size:12px;color:var(--text-tertiary);">
+            默认账号: admin / admin123
+        </div>
     </div>
 </div>
-
-<?php if ($toast): ?>
-<script>alert(<?= json_encode($toast) ?>);</script>
-<?php endif; ?>
 </body>
 </html>

@@ -1,0 +1,25 @@
+# SQLite database
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Logs
+logs/
+*.log
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Composer
+/vendor/
+composer.phar
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

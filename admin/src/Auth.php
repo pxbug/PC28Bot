@@ -1,86 +1,81 @@
 <?php
-namespace App;
-
 /**
- * 鉴权（单管理员 + Session）
+ * Session-based admin authentication
  */
-class Auth
-{
-    public static function start(): void
-    {
-        $config = require __DIR__ . '/../config.php';
+class Auth {
+    const SESSION_KEY = 'admin_id';
+    private static ?array $currentAdmin = null;
+
+    public static function start(): void {
         if (session_status() === PHP_SESSION_NONE) {
-            session_name($config['app']['session_name']);
             session_start();
         }
     }
 
-    public static function login(string $username, string $password): bool
-    {
+    public static function check(): bool {
         self::start();
-        $config = require __DIR__ . '/../config.php';
-        $admin = $config['admin'];
-
-        // 首次部署：用 config 中的明文密码校验并初始化 admin_user 表
-        $row = Db::fetch('SELECT * FROM admin_user WHERE username = ?', [$username]);
-        if (!$row) {
-            if ($username === $admin['username'] && $password === $admin['password']) {
-                $hash = password_hash($password, PASSWORD_BCRYPT);
-                Db::insert('admin_user', [
-                    'username'      => $username,
-                    'password_hash' => $hash,
-                ]);
-                $_SESSION['admin'] = ['id' => 0, 'username' => $username];
-                return true;
-            }
-            return false;
-        }
-
-        if (password_verify($password, $row['password_hash'])) {
-            $_SESSION['admin'] = ['id' => (int)$row['id'], 'username' => $row['username']];
-            return true;
-        }
-
-        // 兼容旧配置中的明文密码
-        if ($username === $admin['username'] && $password === $admin['password']) {
-            $hash = password_hash($password, PASSWORD_BCRYPT);
-            Db::update('admin_user', ['password_hash' => $hash], 'id = :id', ['id' => $row['id']]);
-            $_SESSION['admin'] = ['id' => (int)$row['id'], 'username' => $row['username']];
-            return true;
-        }
-
-        return false;
+        return isset($_SESSION[self::SESSION_KEY]);
     }
 
-    public static function logout(): void
-    {
+    public static function id(): ?int {
         self::start();
-        $_SESSION = [];
-        session_destroy();
+        return $_SESSION[self::SESSION_KEY] ?? null;
     }
 
-    public static function check(): bool
-    {
-        self::start();
-        return !empty($_SESSION['admin']);
+    public static function admin(): ?array {
+        if (self::$currentAdmin !== null) return self::$currentAdmin;
+        $id = self::id();
+        if (!$id) return null;
+        self::$currentAdmin = DB::fetch("SELECT id, username, nickname, role FROM admins WHERE id = ? AND status = 'active'", [$id]);
+        return self::$currentAdmin;
     }
 
-    public static function user(): ?array
-    {
-        self::start();
-        return $_SESSION['admin'] ?? null;
+    public static function role(): string {
+        return self::admin()['role'] ?? 'guest';
     }
 
-    public static function require(): void
-    {
+    public static function isSuperAdmin(): bool {
+        return self::role() === 'super';
+    }
+
+    public static function login(string $username, string $password): bool {
+        $row = DB::fetch("SELECT id, password FROM admins WHERE username = ? AND status = 'active'", [$username]);
+        if (!$row) return false;
+        if (!password_verify($password, $row['password'])) return false;
+
+        self::start();
+        $_SESSION[self::SESSION_KEY] = $row['id'];
+        DB::exec("UPDATE admins SET last_login = ? WHERE id = ?", [time(), $row['id']]);
+        self::$currentAdmin = null;
+        return true;
+    }
+
+    public static function logout(): void {
+        self::start();
+        unset($_SESSION[self::SESSION_KEY]);
+        self::$currentAdmin = null;
+    }
+
+    public static function require(): void {
         if (!self::check()) {
-            $isApi = str_starts_with($_SERVER['REQUEST_URI'] ?? '', '/api/');
-            if ($isApi) {
-                Response::json(['code' => 401, 'msg' => '未登录']);
-            } else {
-                header('Location: /login.php');
-            }
+            header('Location: /login');
             exit;
         }
+    }
+
+    public static function hashPassword(string $plain): string {
+        return password_hash($plain, PASSWORD_DEFAULT);
+    }
+
+    public static function seedAdmin(string $username, string $password, string $nickname = 'SuperAdmin', string $role = 'super'): void {
+        $existing = DB::fetch("SELECT id FROM admins WHERE username = ?", [$username]);
+        if ($existing) return;
+        DB::insert('admins', [
+            'username' => $username,
+            'password' => self::hashPassword($password),
+            'nickname' => $nickname,
+            'role' => $role,
+            'status' => 'active',
+        ]);
     }
 }

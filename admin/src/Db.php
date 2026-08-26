@@ -1,109 +1,78 @@
 <?php
-namespace App;
-
-use PDO;
-use PDOException;
-use Exception;
-
 /**
- * 数据库封装（PDO 单例）
+ * Database wrapper - SQLite (single-file, zero-dependency)
  */
-class Db
-{
+class DB {
     private static ?PDO $pdo = null;
-    private static ?array $config = null;
 
-    public static function init(array $config): void
-    {
-        self::$config = $config;
+    public static function init(string $path): void {
+        if (self::$pdo !== null) return;
+
+        $dir = dirname($path);
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+        self::$pdo = new PDO("sqlite:$path", null, null, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]);
+        self::$pdo->exec("PRAGMA foreign_keys = ON");
     }
 
-    public static function pdo(): PDO
-    {
+    public static function pdo(): PDO {
         if (self::$pdo === null) {
-            if (self::$config === null) {
-                $config = require __DIR__ . '/../config.php';
-                self::$config = $config['db'];
-            }
-            $c = self::$config;
-            $dsn = sprintf(
-                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
-                $c['host'], $c['port'], $c['database'], $c['charset']
-            );
-            try {
-                self::$pdo = new PDO($dsn, $c['username'], $c['password'], [
-                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_EMULATE_PREPARES   => false,
-                ]);
-            } catch (PDOException $e) {
-                throw new Exception('数据库连接失败：' . $e->getMessage());
-            }
+            self::init(dirname(__DIR__) . '/data/admin.db');
         }
         return self::$pdo;
     }
 
-    public static function query(string $sql, array $params = []): \PDOStatement
-    {
+    public static function fetch(string $sql, array $args = []): ?array {
         $stmt = self::pdo()->prepare($sql);
-        $stmt->execute($params);
-        return $stmt;
+        $stmt->execute($args);
+        $row = $stmt->fetch();
+        return $row ?: null;
     }
 
-    public static function fetch(string $sql, array $params = []): ?array
-    {
-        $row = self::query($sql, $params)->fetch();
-        return $row === false ? null : $row;
+    public static function fetchAll(string $sql, array $args = []): array {
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute($args);
+        return $stmt->fetchAll();
     }
 
-    public static function fetchAll(string $sql, array $params = []): array
-    {
-        return self::query($sql, $params)->fetchAll();
+    public static function exec(string $sql, array $args = []): int {
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute($args);
+        return $stmt->rowCount();
     }
 
-    public static function execute(string $sql, array $params = []): int
-    {
-        return self::query($sql, $params)->rowCount();
+    public static function insert(string $table, array $data): int {
+        $keys = array_keys($data);
+        $fields = implode(', ', $keys);
+        $placeholders = implode(', ', array_fill(0, count($keys), '?'));
+        $sql = "INSERT INTO $table ($fields) VALUES ($placeholders)";
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute(array_values($data));
+        return (int) self::pdo()->lastInsertId();
     }
 
-    public static function insert(string $table, array $data): int
-    {
-        $cols = array_keys($data);
-        $placeholders = array_map(fn($c) => ':' . $c, $cols);
-        $sql = sprintf(
-            'INSERT INTO `%s` (%s) VALUES (%s)',
-            $table,
-            implode(',', array_map(fn($c) => "`$c`", $cols)),
-            implode(',', $placeholders)
-        );
-        self::query($sql, $data);
-        return (int)self::pdo()->lastInsertId();
+    public static function update(string $table, array $data, string $where, array $whereArgs = []): int {
+        $sets = implode(', ', array_map(fn($k) => "$k = ?", array_keys($data)));
+        $sql = "UPDATE $table SET $sets WHERE $where";
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute([...array_values($data), ...$whereArgs]);
+        return $stmt->rowCount();
     }
 
-    public static function update(string $table, array $data, string $where, array $params = []): int
-    {
-        $set = [];
-        foreach ($data as $k => $v) {
-            $set[] = "`$k` = :$k";
-        }
-        $sql = sprintf('UPDATE `%s` SET %s WHERE %s', $table, implode(',', $set), $where);
-        return self::query($sql, array_merge($data, $params))->rowCount();
+    public static function count(string $sql, array $args = []): int {
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute($args);
+        return (int) $stmt->fetchColumn();
     }
 
-    public static function begin(): void
-    {
-        self::pdo()->beginTransaction();
-    }
-
-    public static function commit(): void
-    {
-        self::pdo()->commit();
-    }
-
-    public static function rollback(): void
-    {
-        if (self::pdo()->inTransaction()) {
-            self::pdo()->rollBack();
-        }
+    public static function sum(string $sql, array $args = []): float {
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute($args);
+        $val = $stmt->fetchColumn();
+        return $val !== null ? (float) $val : 0.0;
     }
 }

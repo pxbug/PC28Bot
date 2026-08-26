@@ -26,7 +26,7 @@
   },
   "admin_api": {
     "enabled": true,
-    "base_url": "http://127.0.0.1:8081/api/bot/",
+    "base_url": "http://154.36.188.150/api/bot/",
     "app_id": "pc28bot",
     "secret_key": "test_secret_key_2026",
     "timeout": 10
