@@ -6,7 +6,8 @@
 - 开奖查询 <期号>     按期号查（字符串模糊匹配前 N 条）
 - 开启开奖推送 / 关闭开奖推送  订阅/取消订阅本群自动推送
 - 开奖状态            查看当前推送统计（last_issue / push_count）
-- menu / 菜单         帮助（任意成员可见）
+- 启动本群 / 关闭本群  超管专属：启用 / 停用本群机器人
+- menu / 菜单 / GM    帮助（GM 显示含超管命令的完整菜单）
 
 保留占位：parse_command() 用于未来扩展。
 """
@@ -16,6 +17,7 @@ import re
 # ---------- 命令解析 ----------
 
 RE_MENU = re.compile(r"^(菜单|menu|help)\s*$", re.IGNORECASE)
+RE_GM = re.compile(r"^GM\s*$", re.IGNORECASE)
 RE_KJ = re.compile(r"^(开奖)\s*$", re.IGNORECASE)
 RE_HISTORY = re.compile(r"^历史(?:\s+(\d{1,3}))?\s*$", re.IGNORECASE)
 RE_HISTORY2 = re.compile(r"^历史(\d{1,3})\s*$", re.IGNORECASE)
@@ -23,6 +25,8 @@ RE_KJ_QUERY = re.compile(r"^开奖查询\s+(\S+)\s*$", re.IGNORECASE)
 RE_KJ_PUSH_ON = re.compile(r"^(开启开奖推送|开启推送)\s*$", re.IGNORECASE)
 RE_KJ_PUSH_OFF = re.compile(r"^(关闭开奖推送|关闭推送)\s*$", re.IGNORECASE)
 RE_KJ_STATUS = re.compile(r"^(开奖状态|开奖统计)\s*$", re.IGNORECASE)
+RE_START_GROUP = re.compile(r"^启动本群\s*$", re.IGNORECASE)
+RE_STOP_GROUP = re.compile(r"^关闭本群\s*$", re.IGNORECASE)
 
 
 def parse_command(text):
@@ -35,6 +39,9 @@ def parse_command(text):
     m = RE_MENU.match(s)
     if m:
         return {"cmd": "menu"}
+    m = RE_GM.match(s)
+    if m:
+        return {"cmd": "gm"}
     m = RE_KJ.match(s)
     if m:
         return {"cmd": "kj"}
@@ -54,6 +61,12 @@ def parse_command(text):
     m = RE_KJ_STATUS.match(s)
     if m:
         return {"cmd": "kj_status"}
+    m = RE_START_GROUP.match(s)
+    if m:
+        return {"cmd": "start_group"}
+    m = RE_STOP_GROUP.match(s)
+    if m:
+        return {"cmd": "stop_group"}
     return None
 
 
@@ -68,7 +81,23 @@ HELP_TEXT = (
     "开启开奖推送      订阅本群开奖自动推送\n"
     "关闭开奖推送      取消订阅\n"
     "开奖状态          查看推送统计\n"
-    "菜单              帮助"
+    "GM / 菜单        帮助（含全部指令）"
+)
+
+
+SUPER_HELP_TEXT = (
+    "🛡️ 超级管理菜单\n"
+    "────────────\n"
+    "开奖              查询最新 1 期\n"
+    "历史 [N]          最近 N 期（默认 20，最多 100）\n"
+    "开奖查询 <期号>   按期号查\n"
+    "开启开奖推送      订阅本群开奖自动推送\n"
+    "关闭开奖推送      取消订阅\n"
+    "开奖状态          查看推送统计\n"
+    "启动本群          启用本群机器人（超管）\n"
+    "关闭本群          停用本群机器人（超管）\n"
+    "GM                显示本菜单\n"
+    "菜单              显示简化菜单"
 )
 
 
@@ -99,14 +128,30 @@ def execute(config, store, gid, sender_id, text, at_user_id=None, member_name=No
         return {"reply": None}
 
     cmd = parsed["cmd"]
+    sender = str(sender_id or "")
 
     # 菜单：所有人可见
     if cmd == "menu":
         return {"reply": HELP_TEXT}
 
+    # GM：所有人可见，显示超级菜单
+    if cmd == "gm":
+        return {"reply": SUPER_HELP_TEXT}
+
     # 其余：必须有 store 才能查询
     if store is None:
         return {"reply": "❌ 状态存储未初始化"}
+
+    # 启动/关闭本群：仅超管
+    if cmd in ("start_group", "stop_group"):
+        from . import config as _cfg
+        if not _cfg.is_super_admin(config, sender):
+            return {"reply": "❌ 仅超级管理员可执行此操作"}
+        if cmd == "start_group":
+            store.set_enabled(gid, True)
+            return {"reply": "✅ 已启动本群机器人", "refresh_lottery": True}
+        store.set_enabled(gid, False)
+        return {"reply": "⏹ 已关闭本群机器人", "refresh_lottery": True}
 
     # 获取 lottery 客户端（从 runner 注入到 store 的 _lottery_client 属性；不存在则按需创建）
     client = _get_lottery_client(config)

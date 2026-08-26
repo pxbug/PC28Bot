@@ -189,6 +189,12 @@ class V2Runner:
         sender_id = str(md.get("sendID") or "")
         if not gid or not text:
             return
+        # 群停用门控：未启用的群只放行超管，便于"启动本群"
+        if self.store is not None and not self.store.is_group_active(gid):
+            from . import config as _cfg
+            if not _cfg.is_super_admin(self.config, sender_id):
+                self.logger("[gate] 群 %s 已停用，丢弃非超管消息 sender=%s" % (gid, sender_id))
+                return
         # 指令入口
         try:
             from .commands import execute
