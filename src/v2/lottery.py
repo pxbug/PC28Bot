@@ -158,7 +158,10 @@ def format_push(item, source="PC28 开奖"):
 
 
 def format_recent(data, n=20, title=None):
-    """组装历史 N 期文本（最新在前）。
+    """组装历史 N 期文本（旧→新）。
+
+    API 返回最新在前；本函数按期号升序展示（最旧在上、最新在下），
+    便于从前往后顺读时间线。
 
     示例输出（固定 3 列右对齐：期号 / 开奖 / 组合）：
         📜 历史开奖（最近 20 期）
@@ -172,6 +175,8 @@ def format_recent(data, n=20, title=None):
         return "暂无开奖数据"
     limit = max(1, int(n or 20))
     items = data[:limit]
+    # API 返回最新在前，按期号升序（旧→新）展示
+    items.sort(key=lambda i: str(i.get("nbr") or ""))
     head = title or "📜 历史开奖（最近 %d 期）" % len(items)
 
     # 列宽
