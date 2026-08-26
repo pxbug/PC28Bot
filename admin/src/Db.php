@@ -17,6 +17,12 @@ class DB {
             PDO::ATTR_EMULATE_PREPARES   => false,
         ]);
         self::$pdo->exec("PRAGMA foreign_keys = ON");
+
+        // Auto-create tables if not exist
+        $schemaFile = __DIR__ . '/schema.sql';
+        if (is_file($schemaFile)) {
+            self::$pdo->exec(file_get_contents($schemaFile));
+        }
     }
 
     public static function pdo(): PDO {
