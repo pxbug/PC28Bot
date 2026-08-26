@@ -1,5 +1,8 @@
 -- PC28 Bot Admin Database Schema (SQLite)
 -- Run: sqlite3 admin.db < admin/src/schema.sql
+--
+-- NOTE: uses strftime('%s','now') instead of unixepoch()
+-- to ensure cross-platform compatibility (Windows + Linux/macOS)
 
 CREATE TABLE IF NOT EXISTS admins (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -7,7 +10,7 @@ CREATE TABLE IF NOT EXISTS admins (
     password    TEXT    NOT NULL,
     nickname    TEXT    NOT NULL DEFAULT 'Admin',
     role        TEXT    NOT NULL DEFAULT 'admin',
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     last_login  INTEGER DEFAULT 0,
     status      TEXT    NOT NULL DEFAULT 'active'
 );
@@ -24,8 +27,8 @@ CREATE TABLE IF NOT EXISTS users (
     bet_count   INTEGER NOT NULL DEFAULT 0,
     last_bet    INTEGER DEFAULT 0,
     status      TEXT    NOT NULL DEFAULT 'active',
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
-    updated_at  INTEGER NOT NULL DEFAULT (unixepoch())
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+    updated_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
 CREATE TABLE IF NOT EXISTS bets (
@@ -39,7 +42,7 @@ CREATE TABLE IF NOT EXISTS bets (
     result      TEXT    NOT NULL DEFAULT 'pending',
     win_amount  REAL    NOT NULL DEFAULT 0.00,
     lottery_result TEXT,
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     settled_at  INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -52,7 +55,7 @@ CREATE TABLE IF NOT EXISTS deposits (
     status      TEXT    NOT NULL DEFAULT 'pending',
     note        TEXT,
     admin_id    INTEGER,
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     processed_at INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -66,7 +69,7 @@ CREATE TABLE IF NOT EXISTS withdrawals (
     status      TEXT    NOT NULL DEFAULT 'pending',
     note        TEXT,
     admin_id    INTEGER,
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     processed_at INTEGER DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -78,7 +81,7 @@ CREATE TABLE IF NOT EXISTS lottery_history (
     total       INTEGER NOT NULL,
     size        TEXT,
     odd_even    TEXT,
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
 CREATE TABLE IF NOT EXISTS cashback_log (
@@ -87,7 +90,7 @@ CREATE TABLE IF NOT EXISTS cashback_log (
     period      TEXT    NOT NULL,
     bet_amount  REAL    NOT NULL,
     cashback    REAL    NOT NULL,
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch()),
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -98,7 +101,7 @@ CREATE TABLE IF NOT EXISTS operations_log (
     target_type TEXT,
     target_id   INTEGER,
     detail      TEXT,
-    created_at  INTEGER NOT NULL DEFAULT (unixepoch())
+    created_at  INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_bets_user ON bets(user_id);

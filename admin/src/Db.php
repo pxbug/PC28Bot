@@ -11,21 +11,32 @@ class DB {
 
         $config = [];
 
-        // Support both JSON config and PHP config file
+        // Support three config formats:
+        // 1. src/config.json  (JSON)
+        // 2. ../config.php   (JSON inside .php file, common on Windows hosts)
+        // 3. ../config.php   (PHP array return)
         $jsonConfig = __DIR__ . '/config.json';
         $phpConfig = __DIR__ . '/../config.php';
 
         if (file_exists($jsonConfig)) {
-            $config = json_decode(file_get_contents($jsonConfig), true) ?: [];
+            $raw = file_get_contents($jsonConfig);
+            $config = json_decode($raw, true) ?: [];
         } elseif (file_exists($phpConfig)) {
-            $phpConfigData = require $phpConfig;
-            if (is_array($phpConfigData)) {
-                $config = [
-                    'host'     => $phpConfigData['host']     ?? null,
-                    'dbname'   => $phpConfigData['database'] ?? null,
-                    'user'     => $phpConfigData['username'] ?? null,
-                    'pass'     => $phpConfigData['password'] ?? null,
-                ];
+            $raw = file_get_contents($phpConfig);
+            $raw = trim($raw);
+            // Detect if it's JSON or PHP array
+            if ($raw !== '' && $raw[0] === '{') {
+                $config = json_decode($raw, true) ?: [];
+            } else {
+                $phpConfigData = require $phpConfig;
+                if (is_array($phpConfigData)) {
+                    $config = [
+                        'host'     => $phpConfigData['host']     ?? null,
+                        'dbname'   => $phpConfigData['database'] ?? null,
+                        'user'     => $phpConfigData['username'] ?? null,
+                        'pass'     => $phpConfigData['password'] ?? null,
+                    ];
+                }
             }
         }
 
