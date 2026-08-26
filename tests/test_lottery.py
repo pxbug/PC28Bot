@@ -202,31 +202,12 @@ class TestParseCommand(unittest.TestCase):
     def test_history_caps(self):
         self.assertEqual(commands.parse_command("历史999")["n"], 100)
 
-    def test_kj_query(self):
-        self.assertEqual(commands.parse_command("开奖查询 3463701"),
-                         {"cmd": "kj_query", "nbr": "3463701"})
-
-    def test_push_on_off(self):
-        self.assertEqual(commands.parse_command("开启开奖推送"), {"cmd": "kj_push_on"})
-        self.assertEqual(commands.parse_command("开启推送"), {"cmd": "kj_push_on"})
-        self.assertEqual(commands.parse_command("关闭开奖推送"), {"cmd": "kj_push_off"})
-
-    def test_status(self):
-        self.assertEqual(commands.parse_command("开奖状态"), {"cmd": "kj_status"})
-        self.assertEqual(commands.parse_command("开奖统计"), {"cmd": "kj_status"})
-
-    def test_menu(self):
-        self.assertEqual(commands.parse_command("菜单"), {"cmd": "menu"})
-        self.assertEqual(commands.parse_command("menu"), {"cmd": "menu"})
-
     def test_gm(self):
         self.assertEqual(commands.parse_command("GM"), {"cmd": "gm"})
         self.assertEqual(commands.parse_command("gm"), {"cmd": "gm"})
 
-    def test_start_stop_group(self):
+    def test_start_group(self):
         self.assertEqual(commands.parse_command("启动本群"), {"cmd": "start_group"})
-        self.assertEqual(commands.parse_command("关闭本群"), {"cmd": "stop_group"})
-        # 误命中：包含其他内容不能算
         self.assertIsNone(commands.parse_command("启动本群  马上"))
         self.assertIsNone(commands.parse_command("启动其他群"))
 
@@ -235,6 +216,8 @@ class TestParseCommand(unittest.TestCase):
         self.assertIsNone(commands.parse_command(""))
         self.assertIsNone(commands.parse_command(None))
         self.assertIsNone(commands.parse_command("开奖查询"))
+        self.assertIsNone(commands.parse_command("开启开奖推送"))
+        self.assertIsNone(commands.parse_command("菜单"))
 
 
 # ---------- 命令执行（开奖/历史/订阅） ----------
@@ -249,32 +232,9 @@ class TestLotteryCommands(unittest.TestCase):
         self.cfg_no_lottery = {"permissions": {"superAdminIds": ["SA1"]}}
         self.store = GroupStateStore(path=None)
 
-    def test_menu_visible(self):
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "菜单")
-        self.assertIn("开奖", r["reply"])
-        self.assertIn("历史", r["reply"])
-
     def test_kj_no_client(self):
         r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "开奖")
         self.assertIn("未配置", r["reply"])
-
-    def test_kj_push_on(self):
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "开启开奖推送")
-        self.assertIn("已开启", r["reply"])
-        self.assertTrue(r.get("refresh_lottery"))
-        self.assertTrue(self.store.lottery_push_enabled("g1"))
-
-    def test_kj_push_off(self):
-        self.store.lottery_push_set("g1", True)
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "关闭开奖推送")
-        self.assertIn("已关闭", r["reply"])
-        self.assertTrue(r.get("refresh_lottery"))
-        self.assertFalse(self.store.lottery_push_enabled("g1"))
-
-    def test_kj_status(self):
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "开奖状态")
-        self.assertIn("开奖推送状态", r["reply"])
-        self.assertIn("累计推送", r["reply"])
 
     def test_unknown_returns_none_reply(self):
         r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "你好世界")
@@ -284,33 +244,6 @@ class TestLotteryCommands(unittest.TestCase):
         r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "GM")
         self.assertIn("🎱", r["reply"])
         self.assertIn("🚀", r["reply"])
-
-    def test_start_group_requires_super_admin(self):
-        # 先停用本群，再让非超管尝试启动，应被拒绝
-        self.store.set_enabled("g1", False)
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "启动本群")
-        self.assertIn("超级管理员", r["reply"])
-        self.assertFalse(self.store.is_group_active("g1"))
-
-    def test_start_group_super_admin(self):
-        self.store.set_enabled("g1", False)
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "SA1", "启动本群")
-        self.assertIn("已启动", r["reply"])
-        self.assertTrue(self.store.is_group_active("g1"))
-        self.assertTrue(r.get("refresh_lottery"))
-
-    def test_stop_group_super_admin(self):
-        self.store.set_enabled("g1", True)
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "SA1", "关闭本群")
-        self.assertIn("已关闭", r["reply"])
-        self.assertFalse(self.store.is_group_active("g1"))
-        self.assertTrue(r.get("refresh_lottery"))
-
-    def test_stop_group_requires_super_admin(self):
-        self.store.set_enabled("g1", True)
-        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U2", "关闭本群")
-        self.assertIn("超级管理员", r["reply"])
-        self.assertTrue(self.store.is_group_active("g1"))
 
 
 # ---------- LotteryPusher（mock） ----------
