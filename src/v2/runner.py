@@ -284,12 +284,16 @@ class V2Runner:
                 send_func=self._ws_send,
                 logger=self.logger,
                 source_tag="PC28 开奖",
+                history_follow_n=int(lc.get("history_follow_n") or 20),
+                history_follow_delay=int(lc.get("history_follow_delay") or 1),
             )
             self.runtime.lottery_pusher = pusher
             pusher.start()
-            self.logger("[lottery] 推送器已启动：base=%s game=%s 订阅群数=%d"
+            self.logger("[lottery] 推送器已启动：base=%s game=%s 订阅群数=%d 历史补推=%d期/%d秒"
                         % (lc.get("base_url"), lc.get("game") or "jnd28",
-                           len(self.store.lottery_subscribers())))
+                           len(self.store.lottery_subscribers()),
+                           int(lc.get("history_follow_n") or 20),
+                           int(lc.get("history_follow_delay") or 1)))
         except Exception as e:
             self.logger("[lottery] 推送器启动失败: %s" % e)
 

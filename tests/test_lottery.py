@@ -319,7 +319,8 @@ class TestLotteryPusher(unittest.TestCase):
         c.fetch_recent = fetch_recent
         return c
 
-    def _make_pusher(self, items, target_gids, sent=None, items_after=None):
+    def _make_pusher(self, items, target_gids, sent=None, items_after=None,
+                     history_follow_n=0, history_follow_delay=0):
         from v2.lottery import LotteryPusher, PushCounter
         client = self._client_mock(items=items, items_after=items_after)
         counter = PushCounter(tempfile.NamedTemporaryFile(suffix=".json", delete=False).name)
@@ -327,7 +328,9 @@ class TestLotteryPusher(unittest.TestCase):
         pusher = LotteryPusher(client=client, counter=counter,
                                target_gids=target_gids,
                                send_func=lambda g, t: sent_list.append((g, t)),
-                               logger=lambda m: None)
+                               logger=lambda m: None,
+                               history_follow_n=history_follow_n,
+                               history_follow_delay=history_follow_delay)
         # 跳过 _sleep，避免测试假死
         pusher._sleep = lambda s: True
         return pusher, sent_list
@@ -374,6 +377,52 @@ class TestLotteryPusher(unittest.TestCase):
         # 即使没人订阅也要更新 last_issue
         self.assertEqual(pusher.counter.get()["last_issue"], "301")
         self.assertEqual(sent, [])
+
+    def test_cycle_history_follow_disabled(self):
+        """未启用 history_follow 时只发单条推送。"""
+        pusher, sent = self._make_pusher(
+            items=[{"nbr": "400", "time": "", "number": "", "combination": ""}],
+            target_gids=["g1"],
+            items_after=[{"nbr": "401", "time": "", "number": "", "combination": ""}])
+        pusher._cycle()
+        pusher._cycle()
+        self.assertEqual(len(sent), 1)
+        self.assertIn("401", sent[0][1])
+
+    def test_cycle_history_follow_push(self):
+        """启用 history_follow=5 时，开奖 + 历史各发一条，群内共 2 条。"""
+        items_after = [{"nbr": "501", "time": "", "number": "", "combination": ""}] + \
+                      [{"nbr": str(500 - i), "time": "", "number": "", "combination": ""}
+                       for i in range(4)]
+        pusher, sent = self._make_pusher(
+            items=[{"nbr": "500", "time": "", "number": "", "combination": ""}],
+            target_gids=["g1", "g2"],
+            items_after=items_after,
+            history_follow_n=5,
+            history_follow_delay=1)
+        pusher._cycle()   # init
+        pusher._cycle()   # push 501 + history
+        # 每个群 2 条（开奖 + 历史），共 4 条
+        self.assertEqual(len(sent), 4)
+        # 第 1 条是开奖（包含 nbr=501），第 2 条是历史（不包含纯 501 但带 "最近 5"）
+        self.assertIn("501", sent[0][1])
+        self.assertIn("501", sent[1][1])
+        self.assertIn("最近 5", sent[2][1])
+        self.assertIn("最近 5", sent[3][1])
+        # 两个群都收到
+        self.assertEqual(sorted({s[0] for s in sent}), ["g1", "g2"])
+
+    def test_cycle_history_follow_disabled_when_n_zero(self):
+        """n=0 时不补推历史。"""
+        pusher, sent = self._make_pusher(
+            items=[{"nbr": "600", "time": "", "number": "", "combination": ""}],
+            target_gids=["g1"],
+            items_after=[{"nbr": "601", "time": "", "number": "", "combination": ""}],
+            history_follow_n=0,
+            history_follow_delay=1)
+        pusher._cycle()
+        pusher._cycle()
+        self.assertEqual(len(sent), 1)
 
 
 class TestLotteryClientFetch(unittest.TestCase):

@@ -270,14 +270,21 @@ class LotteryPusher:
     """
 
     def __init__(self, client=None, counter=None, target_gids=None,
-                 send_func=None, logger=None, source_tag="PC28 开奖"):
-        """send_func(gid, text) -> None；线程安全即可（用 ws_send 的 send_msg）。"""
+                 send_func=None, logger=None, source_tag="PC28 开奖",
+                 history_follow_n=20, history_follow_delay=1):
+        """send_func(gid, text) -> None；线程安全即可（用 ws_send 的 send_msg）。
+
+        history_follow_n: 每期开奖推送后，附带推送最近 N 期历史表格（0 表示关闭）。
+        history_follow_delay: 推送开奖后等待多少秒再推历史（默认 1 秒）。
+        """
         self.client = client or LotteryClient()
         self.counter = counter or PushCounter("logs/runtime/push_count.json")
         self.target_gids = list(target_gids or [])
         self.send_func = send_func or (lambda gid, text: None)
         self.logger = logger or (lambda msg: None)
         self.source_tag = source_tag
+        self.history_follow_n = max(0, int(history_follow_n or 0))
+        self.history_follow_delay = max(0, int(history_follow_delay or 0))
         self._stop = False
         self._thread = None
         self._push_count_today = 0
@@ -357,6 +364,22 @@ class LotteryPusher:
             except Exception as e:
                 self.logger("[lottery] 推送到 %s 失败: %s" % (gid, e))
             time.sleep(0.4)
+        # 9.5) 开奖后附带：等待 N 秒再推送历史 N 期表格
+        if self.history_follow_n > 0 and self.history_follow_delay > 0:
+            if not self._sleep(self.history_follow_delay):
+                return  # 等待期间被停止
+            hist = fetch_recent_safe(self.client, self.history_follow_n, logger=self.logger)
+            if hist:
+                hist_text = format_recent(hist, n=self.history_follow_n)
+                for gid in self.target_gids:
+                    if self._stop:
+                        break
+                    try:
+                        self.send_func(gid, hist_text)
+                    except Exception as e:
+                        self.logger("[lottery] 历史补推 %s 失败: %s" % (gid, e))
+                    time.sleep(0.4)
+                self.logger("[lottery] 已补推最近 %d 期历史表格" % self.history_follow_n)
         # 10) 更新 last_issue + push_count + 写盘
         self.counter.record(latest["nbr"])
         self._push_count_today += 1
