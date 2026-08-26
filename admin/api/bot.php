@@ -95,7 +95,7 @@ function getOrCreateUser(string $openid, ?string $nickname = null): array {
 // ── Routing ──────────────────────────────────────────────────────────
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $base = '/api/bot/';
-if (!str_starts_with($uri, $base)) {
+if (substr($uri, 0, strlen($base)) !== $base) {
     jsonResp(['ok' => false, 'error' => 'Not Found'], 404);
 }
 

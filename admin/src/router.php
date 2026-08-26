@@ -1,19 +1,7 @@
 <?php
 /**
- * Minimal front-controller router
- * Maps clean URLs to page controllers:
- *   /          → dashboard
- *   /login     → login page
- *   /logout    → logout action
- *   /users     → user list
- *   /users/{id} → user detail
- *   /bets      → bet records
- *   /deposits  → deposit records
- *   /withdrawals → withdrawal records
- *   /lottery   → lottery history + push control
- *   /config    → system config
- *   /stats     → stats / reports
- * All other static files are served from /public/ as-is.
+ * Minimal front-controller router (PHP 7.4+ compatible)
+ * Maps clean URLs to page controllers.
  */
 
 require_once __DIR__ . '/db.php';
@@ -30,7 +18,7 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $method = $_SERVER['REQUEST_METHOD'];
 
 // Remove trailing slashes (except root)
-if ($uri !== '/' && str_ends_with($uri, '/')) {
+if ($uri !== '/' && substr($uri, -1) === '/') {
     header('Location: ' . rtrim($uri, '/'));
     exit;
 }
@@ -55,27 +43,39 @@ if (preg_match('#^/css/#', $uri) || preg_match('#^/js/#', $uri) || preg_match('#
 }
 
 // ── API endpoints ─────────────────────────────────────────────────────────────
-if (str_starts_with($uri, '/api/bot/')) {
+if (substr($uri, 0, 9) === '/api/bot/') {
     require_once __DIR__ . '/api/bot.php';
     exit;
 }
 
 // ── Page routing ──────────────────────────────────────────────────────────────
-$page = match (true) {
-    $uri === '/login' && $method === 'GET'  => ['__login__'],
-    $uri === '/login' && $method === 'POST' => ['__login_post__'],
-    $uri === '/logout'                      => ['__logout__'],
-    $uri === '/'                            => ['dashboard', 'render'],
-    $uri === '/users'                       => ['users', 'render'],
-    preg_match('#^/users/(\d+)$#', $uri, $m) => ['user_detail', 'render', $m[1]],
-    $uri === '/bets'                        => ['bets', 'render'],
-    $uri === '/deposits'                    => ['deposits', 'render'],
-    $uri === '/withdrawals'                => ['withdrawals', 'render'],
-    $uri === '/lottery'                     => ['lottery', 'render'],
-    $uri === '/config'                      => ['config', 'render'],
-    $uri === '/stats'                       => ['stats', 'render'],
-    default                                 => null,
-};
+$page = null;
+
+if ($uri === '/login' && $method === 'GET') {
+    $page = ['__login__'];
+} elseif ($uri === '/login' && $method === 'POST') {
+    $page = ['__login_post__'];
+} elseif ($uri === '/logout') {
+    $page = ['__logout__'];
+} elseif ($uri === '/') {
+    $page = ['dashboard', 'render'];
+} elseif ($uri === '/users') {
+    $page = ['users', 'render'];
+} elseif (preg_match('#^/users/(\d+)$#', $uri, $m)) {
+    $page = ['user_detail', 'render', $m[1]];
+} elseif ($uri === '/bets') {
+    $page = ['bets', 'render'];
+} elseif ($uri === '/deposits') {
+    $page = ['deposits', 'render'];
+} elseif ($uri === '/withdrawals') {
+    $page = ['withdrawals', 'render'];
+} elseif ($uri === '/lottery') {
+    $page = ['lottery', 'render'];
+} elseif ($uri === '/config') {
+    $page = ['config', 'render'];
+} elseif ($uri === '/stats') {
+    $page = ['stats', 'render'];
+}
 
 if ($page === null) {
     http_response_code(404);
@@ -104,7 +104,7 @@ if ($page[0] === '__logout__') {
     exit;
 }
 
-array_shift($page); // drop page name
+array_shift($page);
 $controller = array_shift($page);
 $param = $page[0] ?? null;
 

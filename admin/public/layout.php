@@ -7,7 +7,7 @@ $admin = Auth::admin();
 $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
 function navItem(string $href, string $icon, string $label, string $uri, ?string $badge = null): string {
-    $active = ($href === '/' ? $uri === '/' : str_starts_with($uri, $href)) ? 'active' : '';
+    $active = ($href === '/' ? $uri === '/' : substr($uri, 0, strlen($href)) === $href) ? 'active' : '';
     $badgeHtml = $badge !== null ? "<span class=\"nav-badge\">$badge</span>" : '';
     return "<a href=\"$href\" class=\"nav-item $active\"><span class=\"nav-icon\">$icon</span>$label$badgeHtml</a>";
 }
