@@ -1,14 +1,7 @@
 <?php
 /**
- * Login page
+ * Login page — loaded via router (public/index.php), not served directly.
  */
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/auth.php';
-
-DB::init(__DIR__ . '/data/admin.db');
-Auth::start();
-Auth::seedAdmin('admin', 'admin123', 'SuperAdmin', 'super');
-
 $error = '';
 $success = '';
 
@@ -21,13 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (!Auth::login($username, $password)) {
         $error = '用户名或密码错误';
     } else {
-        header('Location: /');
+        header('Location: ?page=dashboard');
         exit;
     }
 }
 
 if (Auth::check()) {
-    header('Location: /');
+    header('Location: ?page=dashboard');
     exit;
 }
 ?>

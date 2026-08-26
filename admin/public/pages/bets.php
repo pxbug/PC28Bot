@@ -2,11 +2,6 @@
 /**
  * Bet records
  */
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/auth.php';
-
-DB::init(__DIR__ . '/data/admin.db');
-Auth::require();
 
 $pageTitle = '下注记录';
 $breadcrumb = [['下注记录', '/bets']];

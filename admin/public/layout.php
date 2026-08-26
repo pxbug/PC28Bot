@@ -86,14 +86,14 @@ function adminInit(): void {
     <header class="topbar">
         <div class="topbar-breadcrumb">
             <a href="?page=dashboard">首页</a>
-            <?php if (isset($breadcrumb)): foreach ($breadcrumb as $i => $crumb): ?>
+                <?php if (!empty($breadcrumb)): foreach ($breadcrumb as $i => $crumb): ?>
                 <span>›</span>
                 <?php if ($i === count($breadcrumb) - 1): ?>
-                    <span style="color:var(--text-primary)"><?= htmlspecialchars($crumb) ?></span>
+                    <span style="color:var(--text-primary)"><?= htmlspecialchars($crumb[0] ?? $crumb) ?></span>
                 <?php else: ?>
-                    <a href="<?= htmlspecialchars($crumb[1]) ?>"><?= htmlspecialchars($crumb[0]) ?></a>
+                    <a href="<?= htmlspecialchars($crumb[1] ?? '#') ?>"><?= htmlspecialchars($crumb[0] ?? $crumb) ?></a>
                 <?php endif; ?>
-            <?php endforeach; endif; ?>
+                <?php endforeach; endif; ?>
         </div>
         <div class="topbar-spacer"></div>
         <div class="topbar-actions">
@@ -114,7 +114,7 @@ function adminInit(): void {
         <?php if (isset($success)): ?>
             <div id="toast-success" style="display:none" data-msg="<?= htmlspecialchars($success) ?>"></div>
         <?php endif; ?>
-        <!-- Page content injected by router -->
+        <?= $pageContent ?? '' ?>
 </main>
 </div>
 

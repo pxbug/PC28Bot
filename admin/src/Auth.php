@@ -56,9 +56,9 @@ class Auth {
         self::$currentAdmin = null;
     }
 
-    public static function require(): void {
+    public static function require(string $redirect = '?page=login'): void {
         if (!self::check()) {
-            header('Location: /login');
+            header('Location: ' . $redirect);
             exit;
         }
     }

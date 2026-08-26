@@ -2,13 +2,8 @@
 /**
  * User detail page
  */
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/auth.php';
 
-DB::init(__DIR__ . '/data/admin.db');
-Auth::require();
-
-$uid = intval($param ?? 0);
+$uid = intval($uid ?? 0);
 $user = DB::fetch("SELECT * FROM users WHERE id = ?", [$uid]);
 
 if (!$user) {

@@ -2,11 +2,6 @@
 /**
  * Withdrawal records + processing
  */
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/auth.php';
-
-DB::init(__DIR__ . '/data/admin.db');
-Auth::require();
 
 $pageTitle = '提现管理';
 $breadcrumb = [['提现管理', '/withdrawals']];

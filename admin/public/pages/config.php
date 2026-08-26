@@ -2,19 +2,15 @@
 /**
  * System config page
  */
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/auth.php';
-
-DB::init(__DIR__ . '/data/admin.db');
-Auth::require();
 
 $pageTitle = '系统配置';
 $breadcrumb = [['系统配置', '/config']];
 
 $configFile = __DIR__ . '/../../config/robot.config.json';
-$config = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
-$botUrl = $config['admin_api']['base_url'] ?? 'http://154.36.188.150/api/bot/';
-$secretKey = $config['admin_api']['secret_key'] ?? '';
+$config = file_exists($configFile) ? (json_decode(file_get_contents($configFile), true) ?? []) : [];
+$apiSection = $config['admin_api'] ?? [];
+$botUrl = $apiSection['base_url'] ?? 'http://154.36.188.150/api/bot/';
+$secretKey = $apiSection['secret_key'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json');
@@ -22,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'save_bot_url') {
         $newUrl = trim($_POST['bot_url'] ?? '');
+        if (!isset($config['admin_api'])) $config['admin_api'] = [];
         $config['admin_api']['base_url'] = $newUrl;
         if (file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))) {
             DB::insert('operations_log', [
@@ -34,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'regenerate_key') {
         $newKey = bin2hex(random_bytes(16));
+        if (!isset($config['admin_api'])) $config['admin_api'] = [];
         $config['admin_api']['secret_key'] = $newKey;
         if (file_put_contents($configFile, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES))) {
             DB::insert('operations_log', [
@@ -153,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="section-card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <?php
-            $dbSize = file_exists(__DIR__ . '/data/admin.db') ? filesize(__DIR__ . '/data/admin.db') : 0;
+            $dbSize = file_exists(__DIR__ . '/../../../data/admin.db') ? filesize(__DIR__ . '/../../../data/admin.db') : 0;
             $userCount = DB::count("SELECT COUNT(*) FROM users");
             $betCount = DB::count("SELECT COUNT(*) FROM bets");
             $todayBet = DB::count("SELECT COUNT(*) FROM bets WHERE created_at >= ?", [strtotime('today')]);

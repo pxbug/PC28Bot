@@ -19,7 +19,7 @@ HEADER_SCHEMA = bytes.fromhex(
 # 值消息固定头（ReqIdentifier=1003 编码 + SendID 字段增量）
 VALUE_START = bytes.fromhex("ff8001fe07d602")
 
-_DEFAULT_NICKNAME = "机器人V1"
+_DEFAULT_NICKNAME = "PC28机器人"
 _DEFAULT_FACE = ""
 
 

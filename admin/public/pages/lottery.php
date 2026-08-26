@@ -2,11 +2,6 @@
 /**
  * Lottery history + manual entry
  */
-require_once __DIR__ . '/src/db.php';
-require_once __DIR__ . '/src/auth.php';
-
-DB::init(__DIR__ . '/data/admin.db');
-Auth::require();
 
 $pageTitle = '开奖管理';
 $breadcrumb = [['开奖管理', '/lottery']];
