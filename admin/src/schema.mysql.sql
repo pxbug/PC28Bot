@@ -1,4 +1,7 @@
 -- PC28 Bot Admin Database Schema (MySQL)
+-- NOTE: TIMESTAMP columns store UNIX integers as strings (e.g. "1732000000").
+-- PHP code passes UNIX timestamps; DB::now() returns UNIX_TIMESTAMP()
+-- but MySQL-side defaults are CURRENT_TIMESTAMP as a fallback only.
 
 CREATE TABLE IF NOT EXISTS admins (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -6,7 +9,7 @@ CREATE TABLE IF NOT EXISTS admins (
     password    VARCHAR(255) NOT NULL,
     nickname    VARCHAR(64) NOT NULL DEFAULT 'Admin',
     role        VARCHAR(32) NOT NULL DEFAULT 'admin',
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP(),
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0,
     last_login  INT UNSIGNED DEFAULT 0,
     status      VARCHAR(16) NOT NULL DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -23,8 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     bet_count   INT UNSIGNED NOT NULL DEFAULT 0,
     last_bet    INT UNSIGNED DEFAULT 0,
     status      VARCHAR(16) NOT NULL DEFAULT 'active',
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP(),
-    updated_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP()
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0,
+    updated_at  INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS bets (
@@ -38,7 +41,7 @@ CREATE TABLE IF NOT EXISTS bets (
     result      VARCHAR(16) NOT NULL DEFAULT 'pending',
     win_amount  DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     lottery_result VARCHAR(32),
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP(),
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0,
     settled_at  INT UNSIGNED DEFAULT 0,
     INDEX idx_bets_user (user_id),
     INDEX idx_bets_period (period),
@@ -54,7 +57,7 @@ CREATE TABLE IF NOT EXISTS deposits (
     status      VARCHAR(16) NOT NULL DEFAULT 'pending',
     note        TEXT,
     admin_id    INT,
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP(),
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0,
     processed_at INT UNSIGNED DEFAULT 0,
     INDEX idx_deposits_user (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -69,7 +72,7 @@ CREATE TABLE IF NOT EXISTS withdrawals (
     status      VARCHAR(16) NOT NULL DEFAULT 'pending',
     note        TEXT,
     admin_id    INT,
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP(),
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0,
     processed_at INT UNSIGNED DEFAULT 0,
     INDEX idx_withdrawals_user (user_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -82,7 +85,7 @@ CREATE TABLE IF NOT EXISTS lottery_history (
     total       TINYINT UNSIGNED NOT NULL,
     size        VARCHAR(8),
     odd_even    VARCHAR(8),
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP()
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS cashback_log (
@@ -91,7 +94,7 @@ CREATE TABLE IF NOT EXISTS cashback_log (
     period      VARCHAR(32) NOT NULL,
     bet_amount  DECIMAL(10,2) NOT NULL,
     cashback    DECIMAL(10,2) NOT NULL,
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP(),
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -102,5 +105,5 @@ CREATE TABLE IF NOT EXISTS operations_log (
     target_type VARCHAR(32),
     target_id   INT,
     detail      TEXT,
-    created_at  INT UNSIGNED NOT NULL DEFAULT UNIX_TIMESTAMP()
+    created_at  INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
