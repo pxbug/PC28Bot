@@ -32,28 +32,26 @@ require_once __DIR__ . '/../src/Auth.php';
 // Load config
 $configFile = dirname(__DIR__, 2) . '/config/robot.config.json';
 $config = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
-$appId = $config['admin_api']['app_id'] ?? '';
-$secretKey = $config['admin_api']['secret_key'] ?? '';
-$allowedAppId = $config['admin_api']['app_id'] ?? 'pc28bot';
+$adminApi = $config['admin_api'] ?? [];
+$appId = $adminApi['app_id'] ?? 'pc28bot';
+$secretKey = $adminApi['secret_key'] ?? '';
 
 // Initialize DB
 DB::init(dirname(__DIR__) . '/data/admin.db');
 
 // ── Auth ─────────────────────────────────────────────────────────────
 function authBot(): bool {
-    global $appId, $secretKey, $allowedAppId;
+    global $appId, $secretKey;
 
-    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
-    $givenAppId = $input['app_id'] ?? $_SERVER['HTTP_X_APP_ID'] ?? '';
-    $givenKey = $input['secret_key'] ?? $_SERVER['HTTP_X_SECRET_KEY'] ?? '';
+    $givenAppId = $_SERVER['HTTP_X_APP_ID'] ?? '';
+    $givenSign  = $_SERVER['HTTP_X_SIGN']  ?? '';
+    $givenTs    = $_SERVER['HTTP_X_TIMESTAMP'] ?? '';
 
-    // Also accept secret_key in body for simpler integration
-    if (empty($givenKey) && isset($input['secret'])) {
-        $givenKey = $input['secret'];
+    if ($givenAppId !== $appId) return false;
+    if (!empty($secretKey)) {
+        $expected = md5($appId . $givenTs . $secretKey);
+        if (!hash_equals($expected, $givenSign)) return false;
     }
-
-    if ($givenAppId !== $allowedAppId) return false;
-    if (!empty($secretKey) && $givenKey !== $secretKey) return false;
     return true;
 }
 
