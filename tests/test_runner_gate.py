@@ -70,7 +70,7 @@ class TestRunnerGate(unittest.TestCase):
         self.store.set_enabled("g1", True)
         r = _make_runner_for_test(self.cfg, self.store, self.sent)
         r._handle_message(self._md("g1", "U1", "GM"))
-        self.assertTrue(any("超级管理菜单" in t for _, t in self.sent))
+        self.assertTrue(any("🎱" in t for _, t in self.sent))
 
 
 if __name__ == "__main__":

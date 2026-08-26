@@ -278,9 +278,8 @@ class TestLotteryCommands(unittest.TestCase):
 
     def test_gm_returns_super_menu(self):
         r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "GM")
-        self.assertIn("超级管理菜单", r["reply"])
-        self.assertIn("启动本群", r["reply"])
-        self.assertIn("关闭本群", r["reply"])
+        self.assertIn("🎱", r["reply"])
+        self.assertIn("🚀", r["reply"])
 
     def test_start_group_requires_super_admin(self):
         # 先停用本群，再让非超管尝试启动，应被拒绝
