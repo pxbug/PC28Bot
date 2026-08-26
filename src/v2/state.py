@@ -130,4 +130,4 @@ class GroupStateStore:
         """返回所有订阅了开奖推送的群 ID。"""
         with self._lock:
             return [gid for gid, g in self._groups.items()
-                    if bool(g.get("lottery_push_enabled", False))]
+                    if bool(g.get("enabled", False))]
