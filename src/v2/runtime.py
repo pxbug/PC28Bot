@@ -139,10 +139,10 @@ class Runtime:
 
     def set_batch_busy(self, gid, busy):
         """占位：保留方法签名以兼容旧 runner 调用。"""
-        pass
+            pass
 
     def is_batch_busy(self, gid):
-        return False
+            return False
 
     def on_group_member_join(self, gid, new_members):
         """占位：保留方法签名以兼容旧 runner 调用。"""
