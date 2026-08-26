@@ -188,12 +188,16 @@ class TestParseCommand(unittest.TestCase):
     def test_kj(self):
         self.assertEqual(commands.parse_command("开奖"), {"cmd": "kj"})
         self.assertEqual(commands.parse_command("开奖 "), {"cmd": "kj"})
+        self.assertEqual(commands.parse_command("当前期号"), {"cmd": "kj"})
+        self.assertEqual(commands.parse_command("当前"), {"cmd": "kj"})
 
     def test_history_default(self):
         self.assertEqual(commands.parse_command("历史"), {"cmd": "history", "n": 20})
+        self.assertEqual(commands.parse_command("历史开奖"), {"cmd": "history", "n": 20})
 
     def test_history_with_n(self):
         self.assertEqual(commands.parse_command("历史50"), {"cmd": "history", "n": 50})
+        self.assertEqual(commands.parse_command("历史开奖5"), {"cmd": "history", "n": 5})
 
     def test_history_caps(self):
         self.assertEqual(commands.parse_command("历史999")["n"], 100)

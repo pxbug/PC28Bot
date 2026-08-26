@@ -18,9 +18,9 @@ import re
 
 RE_MENU = re.compile(r"^(菜单|menu|help)\s*$", re.IGNORECASE)
 RE_GM = re.compile(r"^GM\s*$", re.IGNORECASE)
-RE_KJ = re.compile(r"^(开奖)\s*$", re.IGNORECASE)
-RE_HISTORY = re.compile(r"^历史(?:\s+(\d{1,3}))?\s*$", re.IGNORECASE)
-RE_HISTORY2 = re.compile(r"^历史(\d{1,3})\s*$", re.IGNORECASE)
+RE_KJ = re.compile(r"^(开奖|当前期号|当前)\s*$", re.IGNORECASE)
+RE_HISTORY = re.compile(r"^历史(?:开奖)?(?:\s+(\d{1,3}))?\s*$", re.IGNORECASE)
+RE_HISTORY2 = re.compile(r"^历史(?:开奖)?(\d{1,3})\s*$", re.IGNORECASE)
 RE_KJ_QUERY = re.compile(r"^开奖查询\s+(\S+)\s*$", re.IGNORECASE)
 RE_KJ_PUSH_ON = re.compile(r"^(开启开奖推送|开启推送)\s*$", re.IGNORECASE)
 RE_KJ_PUSH_OFF = re.compile(r"^(关闭开奖推送|关闭推送)\s*$", re.IGNORECASE)
@@ -75,7 +75,8 @@ def parse_command(text):
 HELP_TEXT = (
     "━━━━━━━━━━━━━━━\n"
     "🎱 当前期号\n"
-    "📜 历史开奖"
+    "📜 历史开奖\n"
+    "━━━━━━━━━━━━━━━"
 )
 
 
@@ -84,7 +85,7 @@ SUPER_HELP_TEXT = (
     "🎱 当前期号\n"
     "📜 历史开奖\n"
     "🚀 启动本群\n"
-    "菜单"
+    "━━━━━━━━━━━━━━━"
 )
 
 
