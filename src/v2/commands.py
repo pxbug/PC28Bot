@@ -12,6 +12,7 @@ import re
 # ---------- 命令解析 ----------
 
 RE_GM = re.compile(r"^GM\s*$", re.IGNORECASE)
+RE_MENU = re.compile(r"^(菜单|menu|help)\s*$", re.IGNORECASE)
 RE_KJ = re.compile(r"^(开奖|当前期号|当前)\s*$", re.IGNORECASE)
 RE_HISTORY = re.compile(r"^历史(?:开奖)?(?:\s+(\d{1,3}))?\s*$", re.IGNORECASE)
 RE_HISTORY2 = re.compile(r"^历史(?:开奖)?(\d{1,3})\s*$", re.IGNORECASE)
@@ -28,6 +29,9 @@ def parse_command(text):
     m = RE_GM.match(s)
     if m:
         return {"cmd": "gm"}
+    m = RE_MENU.match(s)
+    if m:
+        return {"cmd": "menu"}
     m = RE_KJ.match(s)
     if m:
         return {"cmd": "kj"}
@@ -76,6 +80,10 @@ def execute(config, store, gid, sender_id, text, at_user_id=None, member_name=No
     if cmd == "gm":
         return {"reply": SUPER_HELP_TEXT}
 
+    # 菜单：所有人可见
+    if cmd == "menu":
+        return {"reply": HELP_TEXT}
+
     # 其余：必须有 store 才能查询
     if store is None:
         return {"reply": "❌ 状态存储未初始化"}
@@ -89,20 +97,20 @@ def execute(config, store, gid, sender_id, text, at_user_id=None, member_name=No
         return {"reply": "✅ 已启动本群机器人", "refresh_lottery": True}
 
     # 获取 lottery 客户端
-    client = _get_lottery_client(config)
+    client, err = _get_lottery_client(config)
 
     if cmd == "kj":
-        return _cmd_kj(client)
+        return _cmd_kj(client, err)
     if cmd == "history":
-        return _cmd_history(client, parsed["n"])
+        return _cmd_history(client, parsed["n"], err)
     return {"reply": None}
 
 
 # ---------- 命令实现 ----------
 
-def _cmd_kj(client):
+def _cmd_kj(client, err=None):
     if client is None:
-        return {"reply": "❌ 开奖 API 未配置（缺少 API Key）"}
+        return {"reply": err or "❌ 开奖 API 未配置"}
     from .lottery import fetch_recent_safe, format_recent
     data = fetch_recent_safe(client, 1)
     if not data:
@@ -110,9 +118,9 @@ def _cmd_kj(client):
     return {"reply": format_recent(data, n=1, title="🎰 最新开奖")}
 
 
-def _cmd_history(client, n):
+def _cmd_history(client, n, err=None):
     if client is None:
-        return {"reply": "❌ 开奖 API 未配置（缺少 API Key）"}
+        return {"reply": err or "❌ 开奖 API 未配置"}
     if n > 100:
         n = 100
     from .lottery import fetch_recent_safe, format_recent
@@ -125,15 +133,15 @@ def _cmd_history(client, n):
 # ---------- 客户端获取 ----------
 
 def _get_lottery_client(config):
-    """从 config 读取 API Key / base_url / game 构建客户端，缺失则 None。"""
+    """从 config 读取 API Key / base_url / game 构建客户端，缺失则返回 (None, 错误提示)。"""
     lc = (config or {}).get("lottery", {}) or {}
     if not lc.get("enabled", False):
-        return None
+        return None, "❌ 开奖 API 未启用（config.lottery.enabled=false）"
     api_key = lc.get("api_key") or ""
     if not api_key:
-        return None
+        return None, "❌ 开奖 API 未配置（缺少 api_key）"
     base_url = lc.get("base_url") or "https://yu28.top"
     game = lc.get("game") or "jnd28"
     timeout = int(lc.get("timeout") or 10)
     from .lottery import LotteryClient
-    return LotteryClient(base_url=base_url, api_key=api_key, game=game, timeout=timeout)
+    return LotteryClient(base_url=base_url, api_key=api_key, game=game, timeout=timeout), None

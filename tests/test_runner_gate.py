@@ -57,7 +57,7 @@ class TestRunnerGate(unittest.TestCase):
         r._handle_message(self._md("g1", "SA1", "开奖"))
         # 没有 lottery 客户端 → execute 返回"未配置"，仍会 _ws_send 出去
         self.assertTrue(self.sent)
-        self.assertIn("未配置", self.sent[0][1])
+        self.assertIn("未启用", self.sent[0][1])
 
     def test_disabled_group_super_admin_can_start(self):
         self.store.set_enabled("g1", False)

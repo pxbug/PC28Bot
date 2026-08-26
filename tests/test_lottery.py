@@ -127,6 +127,35 @@ class TestFormat(unittest.TestCase):
         self.assertEqual(len(data_lines), 2)
         self.assertEqual(len(data_lines[0]), len(data_lines[1]))
 
+    def test_format_recent_old_to_new(self):
+        """API 返回最新在前，format_recent 应按期号升序（旧→新）展示。"""
+        data = [
+            {"nbr": "3474113", "time": "", "number": "6+9+4=19", "combination": "大单"},
+            {"nbr": "3474112", "time": "", "number": "2+7+6=15", "combination": "大单"},
+            {"nbr": "3474111", "time": "", "number": "2+1+2=5",  "combination": "小单"},
+        ]
+        out = lottery.format_recent(data, n=20)
+        lines = out.splitlines()
+        data_lines = lines[3:]
+        # 第一期数据行应是 3474111（最旧），最后应是 3474113（最新）
+        self.assertIn("3474111", data_lines[0])
+        self.assertIn("3474112", data_lines[1])
+        self.assertIn("3474113", data_lines[2])
+
+    def test_format_recent_n_caps_after_sort(self):
+        """截断按 n 之后，截断前先按升序排序。"""
+        data = [
+            {"nbr": str(3474110 + i), "time": "", "number": "1+2+3=6", "combination": "小双"}
+            for i in range(5)
+        ]  # 3474110 .. 3474114
+        out = lottery.format_recent(data, n=3)
+        lines = out.splitlines()
+        data_lines = lines[3:]
+        self.assertEqual(len(data_lines), 3)
+        self.assertIn("3474110", data_lines[0])
+        self.assertIn("3474111", data_lines[1])
+        self.assertIn("3474112", data_lines[2])
+
 
 # ---------- PushCounter ----------
 
@@ -206,6 +235,11 @@ class TestParseCommand(unittest.TestCase):
         self.assertEqual(commands.parse_command("GM"), {"cmd": "gm"})
         self.assertEqual(commands.parse_command("gm"), {"cmd": "gm"})
 
+    def test_menu(self):
+        self.assertEqual(commands.parse_command("菜单"), {"cmd": "menu"})
+        self.assertEqual(commands.parse_command("menu"), {"cmd": "menu"})
+        self.assertEqual(commands.parse_command("help"), {"cmd": "menu"})
+
     def test_start_group(self):
         self.assertEqual(commands.parse_command("启动本群"), {"cmd": "start_group"})
         self.assertIsNone(commands.parse_command("启动本群  马上"))
@@ -217,7 +251,6 @@ class TestParseCommand(unittest.TestCase):
         self.assertIsNone(commands.parse_command(None))
         self.assertIsNone(commands.parse_command("开奖查询"))
         self.assertIsNone(commands.parse_command("开启开奖推送"))
-        self.assertIsNone(commands.parse_command("菜单"))
 
 
 # ---------- 命令执行（开奖/历史/订阅） ----------
@@ -234,7 +267,22 @@ class TestLotteryCommands(unittest.TestCase):
 
     def test_kj_no_client(self):
         r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "开奖")
-        self.assertIn("未配置", r["reply"])
+        self.assertIn("未启用", r["reply"])
+
+    def test_history_no_client(self):
+        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "历史")
+        self.assertIn("未启用", r["reply"])
+
+    def test_kj_missing_api_key(self):
+        cfg = {"permissions": {"superAdminIds": ["SA1"]},
+               "lottery": {"enabled": True}}
+        r = commands.execute(cfg, self.store, "g1", "U1", "开奖")
+        self.assertIn("api_key", r["reply"])
+
+    def test_menu_visible(self):
+        r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "菜单")
+        self.assertIn("当前期号", r["reply"])
+        self.assertIn("历史", r["reply"])
 
     def test_unknown_returns_none_reply(self):
         r = commands.execute(self.cfg_no_lottery, self.store, "g1", "U1", "你好世界")
