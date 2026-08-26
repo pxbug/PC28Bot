@@ -81,7 +81,7 @@ $betTypePL = DB::fetchAll(
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
     <div class="tabs" style="margin-bottom:0">
         <?php foreach (['today'=>'今日','yesterday'=>'昨日','week'=>'本周','month'=>'本月'] as $p=>$l): ?>
-            <a href="/stats?period=<?= $p ?>" class="tab <?= $period===$p?'active':'' ?>"><?= $l ?></a>
+            <a href="?page=stats&period=<?= $p ?>" class="tab <?= $period===$p?'active':'' ?>"><?= $l ?></a>
         <?php endforeach; ?>
     </div>
 </div>
@@ -147,7 +147,7 @@ $betTypePL = DB::fetchAll(
                 <?php foreach ($topBettors as $i => $b): $profit = $b['total_win'] - $b['total_bet']; ?>
                     <tr>
                         <td class="text-muted"><?= $i + 1 ?></td>
-                        <td><a href="/users/<?= $b['id'] ?>"><?= htmlspecialchars($b['nickname']) ?></a></td>
+                        <td><a href="?page=user_detail&id=<?= $b['id'] ?>"><?= htmlspecialchars($b['nickname']) ?></a></td>
                         <td class="text-right">¥<?= number_format($b['total_bet'], 2) ?></td>
                         <td class="text-right"><?= number_format($b['bet_count']) ?></td>
                         <td class="text-right <?= $profit >= 0 ? 'text-success' : 'text-danger' ?>">

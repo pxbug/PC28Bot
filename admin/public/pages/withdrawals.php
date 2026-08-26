@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div style="margin-bottom:16px;">
     <div class="tabs">
         <?php foreach (['pending'=>'待处理','approved'=>'已通过','rejected'=>'已拒绝',''=>'全部'] as $s=>$l): ?>
-            <a href="/withdrawals?status=<?= $s ?>" class="tab <?= $status===$s?'active':'' ?>"><?= $l ?></a>
+            <a href="?page=withdrawals&status=<?= $s ?>" class="tab <?= $status===$s?'active':'' ?>"><?= $l ?></a>
         <?php endforeach; ?>
     </div>
 </div>
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <tr>
                     <td class="font-mono"><?= $w['id'] ?></td>
                     <td>
-                        <a href="/users/<?= $w['user_id'] ?>"><?= htmlspecialchars($w['nickname']) ?></a>
+                        <a href="?page=user_detail&id=<?= $w['user_id'] ?>"><?= htmlspecialchars($w['nickname']) ?></a>
                         <div class="text-sm text-muted">余额: ¥<?= number_format($w['user_balance'], 2) ?></div>
                     </td>
                     <td class="text-right text-danger">-¥<?= number_format($w['amount'], 2) ?></td>

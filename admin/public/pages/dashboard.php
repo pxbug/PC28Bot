@@ -169,7 +169,7 @@ JS;
     <div class="data-table-wrap">
         <div class="table-header">
             <div class="table-title">最近下注</div>
-            <a href="/bets" class="btn btn-secondary btn-sm">查看全部</a>
+            <a href="?page=bets" class="btn btn-secondary btn-sm">查看全部</a>
         </div>
         <table class="data-table">
             <thead>

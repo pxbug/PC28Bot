@@ -48,7 +48,7 @@ $totalAmount = DB::sum("SELECT SUM(b.amount) FROM bets b JOIN users u ON u.id=b.
 $totalWin = DB::sum("SELECT SUM(b.win_amount) FROM bets b JOIN users u ON u.id=b.user_id $whereSql", $args);
 ?>
 <div class="filter-bar">
-    <form method="GET" action="/bets" style="display:flex;gap:8px;flex:1;flex-wrap:wrap;">
+    <form method="GET" action="?page=bets" style="display:flex;gap:8px;flex:1;flex-wrap:wrap;">
         <div class="search-bar" style="flex:1;min-width:200px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="搜索用户">
@@ -90,7 +90,7 @@ $totalWin = DB::sum("SELECT SUM(b.win_amount) FROM bets b JOIN users u ON u.id=b
                 <tr>
                     <td class="font-mono"><?= $b['id'] ?></td>
                     <td>
-                        <a href="/users/<?= $b['user_id'] ?>" style="font-weight:500;"><?= htmlspecialchars($b['nickname']) ?></a>
+                        <a href="?page=user_detail&id=<?= $b['user_id'] ?>" style="font-weight:500;"><?= htmlspecialchars($b['nickname']) ?></a>
                     </td>
                     <td class="font-mono"><?= htmlspecialchars($b['period']) ?></td>
                     <td><?= htmlspecialchars($b['bet_value']) ?></td>

@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </div>
 
 <div class="filter-bar">
-    <form method="GET" action="/lottery" style="display:flex;gap:8px;">
+    <form method="GET" action="?page=lottery" style="display:flex;gap:8px;">
         <input type="text" name="period" value="<?= htmlspecialchars($period) ?>" class="form-input" placeholder="搜索期号" style="width:160px">
         <button type="submit" class="btn btn-secondary">搜索</button>
     </form>

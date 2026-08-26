@@ -4,12 +4,12 @@
  * All pages render inside this shell (except login page)
  */
 $admin = Auth::admin();
-$currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$currentPage = $_GET['page'] ?? 'dashboard';
 
-function navItem(string $href, string $icon, string $label, string $uri, ?string $badge = null): string {
-    $active = ($href === '/' ? $uri === '/' : substr($uri, 0, strlen($href)) === $href) ? 'active' : '';
+function navItem(string $page, string $icon, string $label, string $current, ?string $badge = null): string {
+    $active = ($page === $current) ? 'active' : '';
     $badgeHtml = $badge !== null ? "<span class=\"nav-badge\">$badge</span>" : '';
-    return "<a href=\"$href\" class=\"nav-item $active\"><span class=\"nav-icon\">$icon</span>$label$badgeHtml</a>";
+    return "<a href=\"?page=$page\" class=\"nav-item $active\"><span class=\"nav-icon\">$icon</span>$label$badgeHtml</a>";
 }
 
 function pageTitle(string $title): string {
@@ -44,22 +44,22 @@ function adminInit(): void {
     <div class="sidebar-nav">
         <div class="nav-section">
             <div class="nav-section-label">概览</div>
-            <?= navItem('/',       '🖥',  '仪表盘',  $currentUri) ?>
-            <?= navItem('/stats',  '📊',  '数据统计', $currentUri) ?>
+            <?= navItem('dashboard', '🖥',  '仪表盘',  $currentPage) ?>
+            <?= navItem('stats',    '📊',  '数据统计', $currentPage) ?>
         </div>
 
         <div class="nav-section">
             <div class="nav-section-label">用户与交易</div>
-            <?= navItem('/users',  '👥',  '用户管理', $currentUri) ?>
-            <?= navItem('/bets',   '🎲',  '下注记录', $currentUri) ?>
-            <?= navItem('/deposits',   '💰', '充值管理', $currentUri) ?>
-            <?= navItem('/withdrawals','🏧', '提现管理', $currentUri) ?>
+            <?= navItem('users',       '👥', '用户管理', $currentPage) ?>
+            <?= navItem('bets',        '🎲', '下注记录', $currentPage) ?>
+            <?= navItem('deposits',    '💰', '充值管理', $currentPage) ?>
+            <?= navItem('withdrawals', '🏧', '提现管理', $currentPage) ?>
         </div>
 
         <div class="nav-section">
             <div class="nav-section-label">系统</div>
-            <?= navItem('/lottery','🔔',  '开奖管理', $currentUri) ?>
-            <?= navItem('/config', '⚙',  '系统配置', $currentUri) ?>
+            <?= navItem('lottery', '🔔', '开奖管理', $currentPage) ?>
+            <?= navItem('config',  '⚙',  '系统配置', $currentPage) ?>
         </div>
     </div>
 
@@ -70,7 +70,7 @@ function adminInit(): void {
                 <div class="sidebar-user-name"><?= htmlspecialchars($admin['nickname'] ?? 'Admin') ?></div>
                 <div class="sidebar-user-role"><?= $admin['role'] === 'super' ? '超级管理员' : '管理员' ?></div>
             </div>
-            <a href="/logout" title="退出登录" class="icon-btn" style="margin-left:4px;">
+            <a href="?page=logout" title="退出登录" class="icon-btn" style="margin-left:4px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                     <polyline points="16 17 21 12 16 7"/>
@@ -85,7 +85,7 @@ function adminInit(): void {
 <div class="main-content">
     <header class="topbar">
         <div class="topbar-breadcrumb">
-            <a href="/">首页</a>
+            <a href="?page=dashboard">首页</a>
             <?php if (isset($breadcrumb)): foreach ($breadcrumb as $i => $crumb): ?>
                 <span>›</span>
                 <?php if ($i === count($breadcrumb) - 1): ?>

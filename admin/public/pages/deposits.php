@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
     <div class="tabs" style="margin-bottom:0">
         <?php foreach (['pending'=>'待处理','approved'=>'已通过','rejected'=>'已拒绝',''=>'全部'] as $s=>$l): ?>
-            <a href="/deposits?status=<?= $s ?>" class="tab <?= $status===$s?'active':'' ?>"><?= $l ?></a>
+            <a href="?page=deposits&status=<?= $s ?>" class="tab <?= $status===$s?'active':'' ?>"><?= $l ?></a>
         <?php endforeach; ?>
     </div>
     <button class="btn btn-primary" onclick="openModal('manual-add')">
@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <tr>
                     <td class="font-mono"><?= $d['id'] ?></td>
                     <td>
-                        <a href="/users/<?= $d['user_id'] ?>"><?= htmlspecialchars($d['nickname']) ?></a>
+                        <a href="?page=user_detail&id=<?= $d['user_id'] ?>"><?= htmlspecialchars($d['nickname']) ?></a>
                         <div class="text-sm text-muted">余额: ¥<?= number_format($d['user_balance'], 2) ?></div>
                     </td>
                     <td class="text-right text-success">+¥<?= number_format($d['amount'], 2) ?></td>

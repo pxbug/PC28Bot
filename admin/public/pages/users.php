@@ -83,12 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 ?>
 <div class="filter-bar">
-    <form method="GET" action="/users" style="display:flex;gap:8px;flex:1;max-width:400px;">
+    <form method="GET" action="?page=users" style="display:flex;gap:8px;flex:1;max-width:400px;">
         <div class="search-bar" style="flex:1">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input type="text" name="q" value="<?= htmlspecialchars($search) ?>" placeholder="搜索昵称 / OpenID / 用户ID">
+            <input type="hidden" name="page" value="users">
         </div>
         <select name="status" class="form-input" style="width:auto" onchange="this.form.submit()">
             <option value="">全部状态</option>
@@ -154,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <td class="text-sm text-muted"><?= date('Y-m-d', $u['created_at']) ?></td>
                     <td>
                         <div style="display:flex;gap:4px;">
-                            <a href="/users/<?= $u['id'] ?>" class="btn btn-sm btn-secondary">详情</a>
+                            <a href="?page=user_detail&id=<?= $u['id'] ?>" class="btn btn-sm btn-secondary">详情</a>
                             <button class="btn btn-sm btn-secondary" onclick="openBalanceModal(<?= $u['id'] ?>, '<?= htmlspecialchars($u['nickname']) ?>', <?= $u['balance'] ?>)">调账</button>
                         </div>
                     </td>
@@ -213,17 +214,17 @@ function openBalanceModal(uid, nickname, balance) {
 function submitBalance() {
     const form = document.getElementById('balance-form');
     const data = new FormData(form);
-    fetch('/users', { method:'POST', body: data, headers:{'X-Requested-With':'XMLHttpRequest'} })
+        fetch('?page=users', { method:'POST', body: data, headers:{'X-Requested-With':'XMLHttpRequest'} })
         .then(r=>r.json())
-        .then(d=>{
-            if(d.ok) {
+        .then(d => {
+            if (d.ok) {
                 closeModal('balance');
                 showToast('余额已调整');
-                setTimeout(()=>location.reload(), 500);
+                setTimeout(() => location.reload(), 500);
             } else {
                 showToast(d.msg || '操作失败', 'error');
             }
         })
-        .catch(()=>showToast('请求失败', 'error'));
+        .catch(() => showToast('请求失败', 'error'));
 }
 </script>
