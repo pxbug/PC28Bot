@@ -1,35 +1,66 @@
 <?php
 /**
- * Database wrapper - SQLite (single-file, zero-dependency)
+ * Database wrapper - MySQL优先，SQLite备用，零配置
  */
 class DB {
-    private static ?PDO $pdo = null;
+    private static $pdo = null;
+    private static $driver = 'mysql'; // or 'sqlite'
 
-    public static function init(string $path): void {
+    public static function init($path = null): void {
         if (self::$pdo !== null) return;
 
-        $dir = dirname($path);
-        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $configFile = __DIR__ . '/config.json';
+        $config = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
 
-        self::$pdo = new PDO("sqlite:$path", null, null, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
-        self::$pdo->exec("PRAGMA foreign_keys = ON");
+        // MySQL first
+        if (!empty($config['host'])) {
+            self::$driver = 'mysql';
+            $host = $config['host'];
+            $dbname = $config['dbname'] ?? 'pc28_admin';
+            $user = $config['user'] ?? 'root';
+            $pass = $config['pass'] ?? '';
 
-        // Auto-create tables if not exist
-        $schemaFile = __DIR__ . '/schema.sql';
+            self::$pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $user, $pass, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+            self::$pdo->exec("SET NAMES utf8mb4");
+
+            $schemaFile = __DIR__ . '/schema.mysql.sql';
+        } else {
+            // SQLite fallback
+            self::$driver = 'sqlite';
+            if ($path === null) $path = __DIR__ . '/../data/admin.db';
+
+            $dir = dirname($path);
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+            self::$pdo = new PDO("sqlite:$path", null, null, [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+            self::$pdo->exec("PRAGMA foreign_keys = ON");
+            $schemaFile = __DIR__ . '/schema.sql';
+        }
+
         if (is_file($schemaFile)) {
             self::$pdo->exec(file_get_contents($schemaFile));
         }
     }
 
     public static function pdo(): PDO {
-        if (self::$pdo === null) {
-            self::init(dirname(__DIR__) . '/data/admin.db');
-        }
+        if (self::$pdo === null) self::init();
         return self::$pdo;
+    }
+
+    public static function isMysql(): bool {
+        return self::$driver === 'mysql';
+    }
+
+    public static function now(): string {
+        return self::isMysql() ? 'UNIX_TIMESTAMP()' : "strftime('%s','now')";
     }
 
     public static function fetch(string $sql, array $args = []): ?array {
@@ -62,10 +93,17 @@ class DB {
     }
 
     public static function update(string $table, array $data, string $where, array $whereArgs = []): int {
-        $sets = implode(', ', array_map(fn($k) => "$k = ?", array_keys($data)));
+        $sets = implode(', ', array_map(function($k) { return "$k = ?"; }, array_keys($data)));
         $sql = "UPDATE $table SET $sets WHERE $where";
         $stmt = self::pdo()->prepare($sql);
-        $stmt->execute([...array_values($data), ...$whereArgs]);
+        $stmt->execute(array_merge(array_values($data), $whereArgs));
+        return $stmt->rowCount();
+    }
+
+    public static function delete(string $table, string $where, array $whereArgs = []): int {
+        $sql = "DELETE FROM $table WHERE $where";
+        $stmt = self::pdo()->prepare($sql);
+        $stmt->execute($whereArgs);
         return $stmt->rowCount();
     }
 
