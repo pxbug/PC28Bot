@@ -60,6 +60,7 @@ def normalize_ws_data(data):
 
 def to_msg_dict(m):
     """把 openim_proto.MsgData 解出的 dict 转成运行时消息字典。"""
+    raw_content = m.get("content", "")
     return {
         "groupID": m.get("groupID", ""),
         "conversationID": m.get("conversationID", ""),
@@ -68,7 +69,7 @@ def to_msg_dict(m):
         "serverMsgID": m.get("serverMsgID", ""),
         "clientMsgID": m.get("clientMsgID", ""),
         "contentType": m.get("contentType", 0),
-        "content": m.get("content", ""),
+        "content": parse_content({"content": raw_content}),
         "seq": m.get("seq", 0),
         "sendTime": m.get("sendTime", 0),
         "atUserIDList": m.get("atUserIDList", []),
