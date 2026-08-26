@@ -271,11 +271,13 @@ class LotteryPusher:
 
     def __init__(self, client=None, counter=None, target_gids=None,
                  send_func=None, logger=None, source_tag="PC28 开奖",
-                 history_follow_n=20, history_follow_delay=1):
+                 history_follow_n=20, history_follow_delay=1,
+                 settle_callback=None):
         """send_func(gid, text) -> None；线程安全即可（用 ws_send 的 send_msg）。
 
         history_follow_n: 每期开奖推送后，附带推送最近 N 期历史表格（0 表示关闭）。
         history_follow_delay: 推送开奖后等待多少秒再推历史（默认 1 秒）。
+        settle_callback: 推送到第一个群后等待几秒再调用后台结算回调（None/0=关闭）
         """
         self.client = client or LotteryClient()
         self.counter = counter or PushCounter("logs/runtime/push_count.json")
@@ -285,6 +287,7 @@ class LotteryPusher:
         self.source_tag = source_tag
         self.history_follow_n = max(0, int(history_follow_n or 0))
         self.history_follow_delay = max(0, int(history_follow_delay or 0))
+        self.settle_callback = settle_callback or (lambda latest: None)
         self._stop = False
         self._thread = None
         self._push_count_today = 0
@@ -380,6 +383,12 @@ class LotteryPusher:
                         self.logger("[lottery] 历史补推 %s 失败: %s" % (gid, e))
                     time.sleep(0.4)
                 self.logger("[lottery] 已补推最近 %d 期历史表格" % self.history_follow_n)
+        # 9.6) 调用后台结算回调（开奖后结算下注用户）
+        if self.settle_callback is not None:
+            try:
+                self.settle_callback(latest)
+            except Exception as e:
+                self.logger("[lottery] 结算回调异常: %s" % e)
         # 10) 更新 last_issue + push_count + 写盘
         self.counter.record(latest["nbr"])
         self._push_count_today += 1
@@ -405,3 +414,82 @@ def fetch_recent_safe(client, nbr, logger=None):
         if logger:
             logger("[lottery] fetch_recent(%d) 失败: %s" % (nbr, e))
         return []
+
+
+# ---------- 后台结算回调 ----------
+
+def parse_sum_from_number(number_text):
+    """
+    从开奖号码文本中解析和值
+
+    例如: "8+9+2=19" -> 19
+          "8+9+2" -> 19
+
+    Returns:
+        int 和值（0-27），解析失败返回 None
+    """
+    if not number_text:
+        return None
+    text = str(number_text).strip()
+    # 匹配 = 后的值
+    if "=" in text:
+        try:
+            return int(text.split("=")[-1].strip())
+        except ValueError:
+            pass
+    # 尝试求和
+    nums = re.findall(r"\d+", text)
+    if nums:
+        # 如果最后一位是前几位的和，则取最后一位
+        try:
+            total = sum(int(n) for n in nums[:-1])
+            if int(nums[-1]) == total and 0 <= int(nums[-1]) <= 27:
+                return int(nums[-1])
+        except (ValueError, IndexError):
+            pass
+        # 否则求所有数字之和
+        try:
+            total = sum(int(n) for n in nums)
+            if 0 <= total <= 27:
+                return total
+        except ValueError:
+            pass
+    return None
+
+
+def settle_issue_to_admin(issue, number_text, logger=None):
+    """
+    推送开奖后，调用后台 API 触发自动结算
+
+    Args:
+        issue: 期号
+        number_text: 开奖号码文本（如 "8+9+2=19"）
+        logger: 日志函数
+
+    Returns:
+        dict 结算结果，失败返回 None
+    """
+    sum_value = parse_sum_from_number(number_text)
+    if sum_value is None:
+        if logger:
+            logger("[lottery] 无法解析和值，跳过结算: %s" % number_text)
+        return None
+
+    try:
+        from bot_api_client import settle
+        result = settle(
+            issue=str(issue),
+            number=str(number_text),
+            sum=sum_value,
+        )
+        if logger:
+            data = result.get("data", {}) if isinstance(result, dict) else {}
+            logger("[lottery] 期号 %s 结算完成: 中奖 %d 人，赔付 %.2f 元"
+                   % (issue,
+                      data.get("settled_count", 0),
+                      float(data.get("settle_amount", 0))))
+        return result
+    except Exception as e:
+        if logger:
+            logger("[lottery] 调用后台结算失败: %s" % e)
+        return None

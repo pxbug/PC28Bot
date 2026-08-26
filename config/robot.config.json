@@ -24,6 +24,13 @@
     "push_counter_path": "logs/runtime/push_count.json",
     "push_default_on": false
   },
+  "admin_api": {
+    "enabled": true,
+    "base_url": "http://127.0.0.1:8081/api/bot/",
+    "app_id": "pc28bot",
+    "secret_key": "test_secret_key_2026",
+    "timeout": 10
+  },
   "logging": {
     "dir": "logs/runtime",
     "max_bytes": 20971520,

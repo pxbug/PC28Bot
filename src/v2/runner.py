@@ -267,8 +267,24 @@ class V2Runner:
         if not api_key:
             self.logger("[lottery] 未配置 api_key，跳过推送器初始化")
             return
+        # 初始化 admin_api 客户端（用于结算回调）
+        ac = self.config.get("admin_api") or {}
+        if ac.get("enabled", False):
+            try:
+                from bot_api_client import init_client as init_bot_api
+                init_bot_api(
+                    base_url=ac.get("base_url", "http://127.0.0.1:8080/api/bot/"),
+                    app_id=ac.get("app_id", ""),
+                    secret_key=ac.get("secret_key", ""),
+                    timeout=int(ac.get("timeout") or 10),
+                )
+                self.logger("[admin_api] 已连接: %s" % ac.get("base_url"))
+            except Exception as e:
+                self.logger("[admin_api] 初始化失败（结算将跳过）: %s" % e)
         try:
-            from .lottery import LotteryClient, LotteryPusher, PushCounter
+            from .lottery import (
+                LotteryClient, LotteryPusher, PushCounter, settle_issue_to_admin
+            )
             client = LotteryClient(
                 base_url=lc.get("base_url") or "https://yu28.top",
                 api_key=api_key,
@@ -286,6 +302,11 @@ class V2Runner:
                 source_tag="PC28 开奖",
                 history_follow_n=int(lc.get("history_follow_n") or 20),
                 history_follow_delay=int(lc.get("history_follow_delay") or 1),
+                settle_callback=lambda latest: settle_issue_to_admin(
+                    issue=latest.get("nbr", ""),
+                    number_text=latest.get("number", ""),
+                    logger=self.logger,
+                ),
             )
             self.runtime.lottery_pusher = pusher
             pusher.start()
