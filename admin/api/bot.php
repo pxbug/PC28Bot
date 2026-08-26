@@ -26,8 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-require_once __DIR__ . '/db.php';
-require_once __DIR__ . '/auth.php';
+require_once __DIR__ . '/../src/Db.php';
+require_once __DIR__ . '/../src/Auth.php';
 
 // Load config
 $configFile = dirname(__DIR__, 2) . '/config/robot.config.json';

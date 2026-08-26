@@ -9,8 +9,25 @@ class DB {
     public static function init($path = null): void {
         if (self::$pdo !== null) return;
 
-        $configFile = __DIR__ . '/config.json';
-        $config = file_exists($configFile) ? json_decode(file_get_contents($configFile), true) : [];
+        $config = [];
+
+        // Support both JSON config and PHP config file
+        $jsonConfig = __DIR__ . '/config.json';
+        $phpConfig = __DIR__ . '/../config.php';
+
+        if (file_exists($jsonConfig)) {
+            $config = json_decode(file_get_contents($jsonConfig), true) ?: [];
+        } elseif (file_exists($phpConfig)) {
+            $phpConfigData = require $phpConfig;
+            if (is_array($phpConfigData)) {
+                $config = [
+                    'host'     => $phpConfigData['host']     ?? null,
+                    'dbname'   => $phpConfigData['database'] ?? null,
+                    'user'     => $phpConfigData['username'] ?? null,
+                    'pass'     => $phpConfigData['password'] ?? null,
+                ];
+            }
+        }
 
         // MySQL first
         if (!empty($config['host'])) {
